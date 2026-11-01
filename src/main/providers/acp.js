@@ -132,7 +132,9 @@ class AcpProvider extends EventEmitter {
     await this.warm();
     if (!this.session) this.session = await this._newSession();
     const session = this.session;
-    const text = buildTurn({ question, shot, imageRef: "inline", firstTurn: session.turns === 0, visualsOnScreen });
+    const closeupRef = shot.closeup ? "the second attached image" : null;
+    const text = buildTurn({ question, shot, imageRef: "inline", closeupRef, firstTurn: session.turns === 0, visualsOnScreen });
+    const images = [shot.jpeg, shot.closeup].filter(Boolean).map((jpeg) => ({ type: "image", mimeType: "image/jpeg", data: jpeg.toString("base64") }));
     let full = "";
     this.chunkSink = (t) => {
       full += t;
@@ -141,10 +143,7 @@ class AcpProvider extends EventEmitter {
     try {
       const res = await this._rpc("session/prompt", {
         sessionId: session.id,
-        prompt: [
-          { type: "text", text },
-          { type: "image", mimeType: "image/jpeg", data: shot.jpeg.toString("base64") },
-        ],
+        prompt: [{ type: "text", text }, ...images],
       });
       session.turns++;
       if (res?.stopReason === "cancelled") throw Object.assign(new Error("cancelled"), { cancelled: true });

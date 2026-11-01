@@ -34,9 +34,22 @@ console.error(`warm: ${Date.now() - t0} ms`);
 const t1 = Date.now();
 let first = 0;
 const size = jpegSize(jpeg);
+const shot = { jpeg, ...size, imageWidth: size.width, imageHeight: size.height, title: "" };
+// POINTER="x,y" (screenshot pixels) and CLOSEUP=<jpg> simulate the user pointing while asking; the screenshot should
+// already have the pointer marked on it.
+if (process.env.POINTER) {
+  const [x, y] = process.env.POINTER.split(",").map(Number);
+  shot.pointer = { x, y, meant: true };
+  if (process.env.CLOSEUP) {
+    shot.closeup = readFileSync(process.env.CLOSEUP);
+    const cx = Math.max(0, Math.min(size.width - 440, Math.round(x - 220)));
+    const cy = Math.max(0, Math.min(size.height - 260, Math.round(y - 130)));
+    shot.closeupBox = [cx, cy, cx + 440, cy + 260];
+  }
+}
 const res = await provider.ask({
   question,
-  shot: { jpeg, ...size, imageWidth: size.width, imageHeight: size.height, title: "" },
+  shot,
   visualsOnScreen: false,
   onDelta: (t) => {
     if (!first) first = Date.now() - t1;

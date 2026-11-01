@@ -93,6 +93,7 @@ export class Mic {
     this.onLevel = onLevel;
     this.ctx = null;
     this.noise = 0.006;
+    this.holding = false; // push-to-talk: no stopping on silence
     this.listener = null; // receives every 100 ms block: (block, rms)
   }
 
@@ -129,6 +130,7 @@ export class Mic {
    * Resolves with 16 kHz Float32 samples, or null if nobody spoke. `stop()` ends it early.
    */
   record({ silenceMs = 1100, maxMs = 25000, noSpeechMs = 7000 } = {}) {
+    this.holding = false;
     return new Promise((resolve) => {
       const blocks = [];
       let spoke = false;
@@ -138,7 +140,8 @@ export class Mic {
       const done = (keep) => {
         this.listener = null;
         this._stop = null;
-        if (!keep || !spoke) return resolve(null);
+        // Held-key recordings go to Whisper even if the level gate never fired (a quiet voice); Whisper decides.
+        if (!keep || (!spoke && !(this.holding && blocks.length >= 5))) return resolve(null);
         const out = new Float32Array(blocks.length * 1600);
         blocks.forEach((b, i) => out.set(b, i * 1600));
         resolve(out);
@@ -149,7 +152,7 @@ export class Mic {
         const gate = Math.max(0.012, this.noise * 3);
         if (!spoke) this.noise = this.noise * 0.95 + rms * 0.05;
         blocks.push(block);
-        if (!spoke && blocks.length > 5) blocks.shift(); // keep 0.5 s of lead-in
+        if (!spoke && !this.holding && blocks.length > 5) blocks.shift(); // keep 0.5 s of lead-in
         if (rms > gate) {
           loudRun++;
           quiet = 0;
@@ -158,7 +161,9 @@ export class Mic {
           loudRun = 0;
           quiet += 100;
         }
-        if ((spoke && quiet >= silenceMs) || elapsed >= maxMs) done(true);
+        if (this.holding) {
+          if (elapsed >= 60000) done(true);
+        } else if ((spoke && quiet >= silenceMs) || elapsed >= maxMs) done(true);
         else if (!spoke && elapsed >= noSpeechMs) done(false);
       };
     });

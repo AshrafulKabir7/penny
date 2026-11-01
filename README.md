@@ -30,12 +30,16 @@ Talky lives in the system tray. The first start takes 10–15 s while the model 
 
 | Key | What it does |
 | --- | --- |
-| `Ctrl+Alt+Space` | Talk. Ask your question, and Talky stops listening when you pause. Press again to stop early. |
+| `Ctrl+Alt+Space` | Talk. **Hold** it while you speak and let go to send (push-to-talk), or **tap** it, speak, and Talky stops when you pause. |
 | `Ctrl+Alt+T` | Type a question instead |
 | `Esc` | Clear the screen and start a new topic (only taken while Talky has something on screen) |
 
 If another app already owns a shortcut, Talky uses the next free one: `Ctrl+Shift+Space`, `Alt+Shift+Space`, then
 `Ctrl+Alt+K` for talking, and `Ctrl+Shift+Y` for typing. The tray tooltip and the log show which keys you got.
+
+**Point while you ask.** Put the mouse on the thing you mean and say "what is this?" or "explain this". Talky notes
+where the pointer rested while you talked, and if your question says this, that, here or there, it marks that spot on
+the screenshot and sends the model a 2× close-up of it. Loops and arrows drawn near the pointer snap exactly onto it.
 
 Questions asked while the drawings are still on screen, or within 5 minutes, are follow-ups in the same
 conversation ("how do I attach a camera to it?").
@@ -74,16 +78,19 @@ Command Code only offers some models on some plans. If a model is not on yours, 
    before it is being spoken.
 5. **Rendering.** A transparent, click-through, always-on-top window covers the screen:
    - 2D: Rough.js strokes in the Kalam hand
-   - 3D: Three.js scenes built from primitives (box, cylinder, cone, fan, extrude, lathe…), with tags, spinning
-     parts, animated assembly and flow arrows
+   - 3D: Three.js scenes on a paper panel, built from primitives (box, cylinder, cone, fan, extrude, lathe…) and
+     ready-made objects (posable person, car, rocket, skateboard, table, wheel, gear, spring, floor). They have tags,
+     spinning parts, animated moves, flow arrows and labelled force arrows, so a physics question becomes a small
+     experiment rather than abstract blobs.
 
 ## Development
 
 - `npm run dev` also starts a local control server on `127.0.0.1:8791`:
-  - `POST /ask` with `{"text": "..."}`: ask about the current screen
+  - `POST /ask` with `{"text": "...", "pointer": [x, y]}`: ask about the current screen, optionally pointing at a screen point
   - `POST /ops`: play a JSONL reply
   - `POST /clear`
   - `POST /listen`
+  - `POST /talkkey`: one talk-hotkey event, for testing tap and hold
   - `POST /stt` with raw 16 kHz float32: transcribe
   - `GET /snap`: PNG of the screen, drawings included
   - `GET /state`

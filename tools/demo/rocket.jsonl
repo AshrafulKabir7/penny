@@ -1,0 +1,14 @@
+{"op":"space","w":1600,"h":900}
+{"op":"say","text":"A rocket flies by throwing mass backwards really fast — and physics pushes it forwards."}
+{"op":"scene","id":"s1","box":[880,170,1560,660],"view":"side","title":"How a rocket flies"}
+{"op":"part","scene":"s1","id":"floor","shape":"floor","size":[6,4],"pos":[0,0,0]}
+{"op":"part","scene":"s1","id":"rocket","shape":"rocket","size":[4],"pos":[-0.6,0,0],"color":"#e8eef7"}
+{"op":"tag","scene":"s1","target":"rocket","text":"Rocket","color":"blue"}
+{"op":"say","text":"The engine burns fuel and oxygen, turning them into hot gas that fires out of the nozzle."}
+{"op":"flow","scene":"s1","path":[[-0.6,1.2,0],[-0.6,0.2,0],[-0.6,0,0],[-2.2,0.1,0],[-3.0,0.6,0]],"color":"#ff8a3d","text":"exhaust"}
+{"op":"say","text":"Every bit of gas shoved down is an equal push up on the rocket — Newton's third law."}
+{"op":"force","scene":"s1","id":"thrust","from":[-0.6,1.6,0],"to":[-0.6,3.4,0],"color":"green","text":"thrust up"}
+{"op":"force","scene":"s1","id":"gas","from":[-0.6,0.5,0],"to":[-2.6,0.1,0],"color":"pink","text":"gas down/back"}
+{"op":"say","text":"That's why it works in empty space: it never needs air to push against, only its own fuel."}
+{"op":"move","scene":"s1","target":"rocket","by":[0,2.6,0],"seconds":2.5}
+{"op":"say","text":"Thrust beats gravity, the rocket gets lighter as fuel burns, and it keeps accelerating upward."}

@@ -7,6 +7,8 @@ import { Card } from "./card.js";
 import * as marks from "./marks.js";
 import { Pen, svgEl } from "./sketch.js";
 
+const SNAP_PX = 110;
+
 const ALIASES = { speak: "say", narrate: "say", voice: "say", ellipse: "circle", loop: "circle", line: "arrow", sticky: "note",
   tag3d: "tag", mesh: "part", object: "part", model: "scene", scene3d: "scene", camera: "focus", pause: "wait", marker: "highlight" };
 
@@ -45,6 +47,7 @@ export class Stage {
 
   point(p, fallback = [500, 500]) {
     const { w, h } = this.space;
+    if (p === "pointer" && this.pointer) p = [this.pointer.x, this.pointer.y];
     const [x, y] = Array.isArray(p) && p.length >= 2 ? p : [(fallback[0] / 1000) * w, (fallback[1] / 1000) * h];
     const nx = Math.max(0, Math.min(w, Number(x) || 0));
     const ny = Math.max(0, Math.min(h, Number(y) || 0));
@@ -53,10 +56,39 @@ export class Stage {
 
   box(b, fallback = [400, 400, 600, 600]) {
     const { w, h } = this.space;
+    if (b === "pointer" && this.pointer) {
+      const [x, y] = this.point("pointer");
+      return [x - 70, y - 22, x + 70, y + 22];
+    }
     const src = Array.isArray(b) && b.length >= 4 ? b : fallback.map((v, i) => (v / 1000) * (i % 2 ? h : w));
     const [ax, ay] = this.point([src[0], src[1]]);
     const [bx, by] = this.point([src[2], src[3]]);
     return [Math.min(ax, bx), Math.min(ay, by), Math.max(ax, bx), Math.max(ay, by)];
+  }
+
+  // When the user pointed while asking ("what is this?"), a mark the model meant for that spot is usually a little off.
+  // Points within reach of the pointer snap onto it, and boxes near it shift just enough to contain it.
+
+  get pointerPx() {
+    return this.pointer?.meant ? this.point("pointer") : null;
+  }
+
+  markPoint(p, fallback) {
+    const pt = this.point(p, fallback);
+    const ptr = this.pointerPx;
+    if (ptr && p !== "pointer" && Math.hypot(pt[0] - ptr[0], pt[1] - ptr[1]) < SNAP_PX) return ptr;
+    return pt;
+  }
+
+  markBox(b, fallback) {
+    let [x0, y0, x1, y1] = this.box(b, fallback);
+    const ptr = this.pointerPx;
+    if (!ptr || b === "pointer") return [x0, y0, x1, y1];
+    const [px, py] = ptr;
+    const dx = px < x0 ? px - x0 - 8 : px > x1 ? px - x1 + 8 : 0;
+    const dy = py < y0 ? py - y0 - 8 : py > y1 ? py - y1 + 8 : 0;
+    if ((dx || dy) && Math.hypot(dx, dy) < SNAP_PX) [x0, y0, x1, y1] = [x0 + dx, y0 + dy, x1 + dx, y1 + dy];
+    return [x0, y0, x1, y1];
   }
 
   // ------------------------------------------------------------ queue
@@ -64,6 +96,7 @@ export class Stage {
   /** Starts a new answer: anything still queued from the previous one is dropped. */
   beginAnswer(space) {
     this.space = space && space.w > 0 && space.h > 0 ? space : { w: 1000, h: 1000 };
+    this.pointer = null;
     this.generation++;
     this.queue = [];
     this.speaker.stop();
@@ -158,6 +191,7 @@ export class Stage {
       case "spin":
       case "move":
       case "flow":
+      case "force":
       case "focus": {
         const scene = await this._scene(op.scene);
         if (op.op === "tag" || op.op === "move") {

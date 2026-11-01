@@ -104,8 +104,6 @@ async def main():
         loop.call_soon_threadsafe(queue.put_nowait, None)
 
     threading.Thread(target=read_stdin, daemon=True).start()
-    threading.Thread(target=load_model, daemon=True).start()
-    emit({"event": "started"})
     while True:
         line = await queue.get()
         if line is None:
@@ -118,4 +116,9 @@ async def main():
 
 
 if __name__ == "__main__":
+    emit({"event": "started"})
+    # Whisper loads before anything reads stdin. On Windows a blocking read on a pipe holds up every other call on that
+    # handle, and importing torch/whisper touches stdin, so loading alongside the reader thread hung until the app
+    # happened to send a request. Requests sent meanwhile simply wait in the pipe.
+    load_model()
     asyncio.run(main())

@@ -134,6 +134,10 @@ async function listen({ wake = false } = {}) {
 
 api.on("listen:start", (opts) => listen(opts || {}));
 api.on("listen:stop", () => mic.stop(true));
+api.on("listen:hold", () => {
+  mic.holding = true; // push-to-talk: keep recording through pauses until the key is let go
+  setPill("listening", "Listening · release to send");
+});
 api.on("listen:cancel", () => {
   mic.stop(false);
   setPhase("idle");
@@ -142,6 +146,7 @@ api.on("heard", ({ text }) => {
   if (text) setPill("thinking", `“${text}”`);
 });
 api.on("answer:start", (info) => startAnswer(info));
+api.on("answer:pointer", (p) => (stage.pointer = p && p.x != null ? p : null));
 api.on("answer:space", ({ w, h }) => {
   if (w > 0 && h > 0) stage.space = { w, h };
 });
@@ -197,7 +202,7 @@ function demoApi() {
   const bg = params.get("bg");
   if (bg) document.body.style.backgroundImage = `url("${bg}")`;
   const handlers = {};
-  const demos = (params.get("demos") || "tensor,f35-hover,jet,engine,pi,pi-camera").split(",");
+  const demos = (params.get("demos") || "tensor,f35-hover,jet,engine,pi,pi-camera,newton1,newton3,rocket").split(",");
   queueMicrotask(() => {
     const bar = document.createElement("div");
     bar.className = "demo-bar";

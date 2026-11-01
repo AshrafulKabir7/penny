@@ -5,6 +5,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { color as paletteColor, sleep } from "./sketch.js";
+import { PREFABS, Z_AXIS } from "./prefabs.js";
 
 const DEG = Math.PI / 180;
 const num = (v, d) => (Number.isFinite(Number(v)) ? Number(v) : d);
@@ -43,6 +44,7 @@ function material(op) {
 function buildShape(op, mat) {
   const s = Array.isArray(op.size) ? op.size : op.size != null ? [op.size] : [];
   const shape = String(op.shape || "box").toLowerCase();
+  if (PREFABS[shape]) return PREFABS[shape](op, (color, kind) => material({ color, material: kind }));
   let geo;
   switch (shape) {
     case "cylinder":
@@ -125,14 +127,14 @@ function orientAxis(shape, op) {
   const target = dirs[String(op.axis || "").toLowerCase().replace("+", "")];
   if (!target) return;
   const kind = String(op.shape || "").toLowerCase();
-  const native = kind === "torus" || kind === "ring" ? [0, 0, 1] : [0, 1, 0];
+  const native = Z_AXIS.has(kind) ? [0, 0, 1] : [0, 1, 0];
   shape.quaternion.setFromUnitVectors(new THREE.Vector3(...native), new THREE.Vector3(...target));
 }
 
 function addEdges(obj, mat) {
   if (mat.transparent) return;
   obj.traverse((m) => {
-    if (!m.isMesh || m.userData.edges) return;
+    if (!m.isMesh || m.userData.edges || m.userData.noEdges) return;
     const edges = new THREE.LineSegments(
       new THREE.EdgesGeometry(m.geometry, 32),
       new THREE.LineBasicMaterial({ color: 0x1d1f22, transparent: true, opacity: 0.28 }),
@@ -167,8 +169,15 @@ export class Scene3D {
     const w = Math.max(300, x1 - x0);
     const h = Math.max(240, y1 - y0);
     this.el = document.createElement("div");
-    this.el.className = "scene3d";
+    // Scenes stand on a paper panel so they read clearly over busy pages; "float":true drops it.
+    this.el.className = op.float ? "scene3d float" : "scene3d";
     this.el.dataset.interactive = "";
+    if (op.title && !op.float) {
+      const title = document.createElement("div");
+      title.className = "scene-title";
+      title.textContent = String(op.title).slice(0, 60);
+      this.el.appendChild(title);
+    }
     Object.assign(this.el.style, {
       left: `${Math.max(0, Math.min(x0, window.innerWidth - w))}px`,
       top: `${Math.max(0, Math.min(y0, window.innerHeight - h))}px`,
@@ -257,10 +266,20 @@ export class Scene3D {
       parent.inner.attach(group);
     }
     this.parts.set(id, { group, inner, op });
+    if (["floor", "ground"].includes(String(op.shape).toLowerCase())) group.userData.ignoreFit = true;
     group.scale.setScalar(0.001);
     this.tweens.push({ t: 0, dur: 0.32, pop: true, step: (k) => group.scale.setScalar(Math.max(0.001, easeOutBack(k))) });
     this.needsFrame = true; // refit the camera as the part grows to full size
     return sleep(70);
+  }
+
+  /** The scene's bounds for framing: everything except floors, which should run out past the edges of the view. */
+  _fitBox(target = new THREE.Box3()) {
+    target.makeEmpty();
+    this.root.updateWorldMatrix(true, true);
+    for (const child of this.root.children) if (!child.userData.ignoreFit) target.expandByObject(child);
+    if (target.isEmpty()) target.setFromObject(this.root);
+    return target;
   }
 
   _partBox(id) {
@@ -301,7 +320,7 @@ export class Scene3D {
 
   frame() {
     this.root.updateWorldMatrix(true, true);
-    this._box.setFromObject(this.root);
+    this._fitBox(this._box);
     if (this._box.isEmpty()) return;
     this.focused = null;
     this._aim(this._box, this.userMoved);
@@ -321,7 +340,7 @@ export class Scene3D {
     this.focused = op.target;
     // Close enough to see the part, never so close that its surroundings (and what it plugs into) disappear.
     this.root.updateWorldMatrix(true, true);
-    const whole = new THREE.Box3().setFromObject(this.root).getSize(new THREE.Vector3());
+    const whole = this._fitBox().getSize(new THREE.Vector3());
     const partSize = box.getSize(new THREE.Vector3());
     const want = Math.max(Math.max(whole.x, whole.y, whole.z) * 0.6, Math.max(partSize.x, partSize.y, partSize.z) * 1.9);
     box.setFromCenterAndSize(box.getCenter(new THREE.Vector3()), new THREE.Vector3(want, want, want));
@@ -373,20 +392,66 @@ export class Scene3D {
     const holder = p.group.parent;
     holder.updateWorldMatrix(true, false);
     const fromPos = p.group.position.clone();
-    const toPos = op.to ? holder.worldToLocal(new THREE.Vector3(...vec3(op.to))) : fromPos.clone();
+    let toPos = op.to ? holder.worldToLocal(new THREE.Vector3(...vec3(op.to))) : fromPos.clone();
+    if (Array.isArray(op.by)) {
+      // "by" is a shift in scene coordinates from where the part is now.
+      const world = p.group.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(...vec3(op.by)));
+      toPos = holder.worldToLocal(world);
+    }
     const fromQ = p.group.quaternion.clone();
     const holderQ = holder.getWorldQuaternion(new THREE.Quaternion()).invert();
     const toQ = op.rot ? holderQ.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...vec3(op.rot).map((d) => d * DEG)))) : fromQ.clone();
     this.tweens.push({
       t: 0,
       dur: seconds,
+      refit: true, // the camera follows things that travel (a rocket lifting off, skaters rolling apart)
       step: (k) => {
         const e = easeInOut(k);
         p.group.position.lerpVectors(fromPos, toPos, e);
         p.group.quaternion.slerpQuaternions(fromQ, toQ, e);
       },
     });
-    return sleep(seconds * 1000);
+    // "wait":false starts the next op straight away, so several parts can move together.
+    return op.wait === false ? sleep(40) : sleep(seconds * 1000);
+  }
+
+  /** A labelled 3D arrow (force, velocity, current...) that grows from "from" to "to". */
+  force(op) {
+    const a = new THREE.Vector3(...vec3(op.from, [0, 0, 0]));
+    const b = new THREE.Vector3(...vec3(op.to, [1, 0, 0]));
+    const length = a.distanceTo(b);
+    if (length < 1e-4) return;
+    // Thickness follows the size of the scene, so arrows read the same in a 2 m experiment and a 10-unit machine.
+    const size = this._fitBox().getSize(new THREE.Vector3());
+    const D = Math.max(0.5, size.x, size.y, size.z);
+    const col = paletteColor(op.color || "pink").stroke;
+    // Arrows are annotations: drawn on top, so an arrow inside or behind an object (thrust through a rocket) still shows.
+    const mat = new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.45, roughness: 0.4, depthTest: false, transparent: true, opacity: 0.95 });
+    const head = Math.min(length * 0.4, D * 0.09);
+    const group = new THREE.Group();
+    const inner = new THREE.Group();
+    inner.add(mesh(new THREE.CylinderGeometry(D * 0.016, D * 0.016, length - head, 16), mat, (length - head) / 2));
+    inner.add(mesh(new THREE.ConeGeometry(D * 0.04, head, 22), mat, length - head / 2));
+    group.add(inner);
+    group.renderOrder = 10;
+    inner.traverse((o) => (o.renderOrder = 10));
+    group.position.copy(a);
+    group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    this.root.add(group);
+    const id = String(op.id || `force${this.parts.size}`);
+    this.parts.get(id)?.group.removeFromParent();
+    this.parts.set(id, { group, inner, op });
+    inner.scale.set(1, 0.001, 1);
+    this.tweens.push({ t: 0, dur: 0.55, pop: true, step: (k) => inner.scale.set(1, Math.max(0.001, easeInOut(k)), 1) });
+    this.needsFrame = true; // keep the whole arrow in view as it grows
+    if (op.text) this.tag({ at: a.clone().lerp(b, 0.6).toArray(), text: op.text, color: op.color || "pink" });
+    return sleep(450);
+
+    function mesh(geo, material, y) {
+      const m = new THREE.Mesh(geo, material);
+      m.position.y = y;
+      return m;
+    }
   }
 
   flow(op) {
@@ -420,7 +485,8 @@ export class Scene3D {
       tw.step(k);
       return k < 1;
     });
-    if (this.needsFrame && !this.userMoved && !this.focused) {
+    const moving = this.tweens.some((tw) => tw.refit);
+    if ((this.needsFrame || moving) && !this.userMoved && !this.focused) {
       this.frame();
       if (!this.tweens.some((tw) => tw.pop)) this.needsFrame = false;
     }
@@ -465,7 +531,7 @@ export class Scene3D {
   /** Tags sit in a column on each side of the object, in the order of their anchors, never on top of each other. */
   _layoutTags() {
     if (!this.tags.length) return;
-    this._box.setFromObject(this.root);
+    this._fitBox(this._box);
     let bx0 = Infinity, bx1 = -Infinity;
     if (!this._box.isEmpty()) {
       const { min, max } = this._box;

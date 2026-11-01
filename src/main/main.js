@@ -5,7 +5,8 @@ const { appendFileSync, mkdirSync, writeFileSync } = require("node:fs");
 const { createServer } = require("node:http");
 const { join } = require("node:path");
 const settings = require("./settings");
-const { captureScreen, activeDisplay } = require("./capture");
+const { captureScreen, activeDisplay, markPointer } = require("./capture");
+const { PointerTracker, POINTING, toImage } = require("./pointer");
 const { createProvider, discoverModels, SUGGESTED, parseModelId } = require("./providers");
 const { VoiceWorker } = require("./voice");
 const { trayIconPng } = require("./icon");
@@ -30,6 +31,8 @@ let visualsOnScreen = false;
 let lastAnswerAt = 0;
 let extraModels = [];
 let wakeLoopOn = false;
+const pointer = new PointerTracker();
+let pointerAt = null; // where the user pointed while asking (screen DIP)
 
 const logFile = () => join(app.getPath("userData"), "talky.log");
 function log(line) {
@@ -157,7 +160,7 @@ function friendlyError(err, parsed = parseModelId(cfg.model)) {
   return m.length > 140 ? `${m.slice(0, 140)}…` : m;
 }
 
-async function ask(question, shotPromise) {
+async function ask(question, shotPromise, pointedAt = null) {
   question = String(question || "").trim();
   if (!question) return;
   const id = ++askSeq;
@@ -171,9 +174,11 @@ async function ask(question, shotPromise) {
   try {
     // A cancelled turn has to wind down before the same session can take the next one.
     if (previous) await Promise.race([previous, new Promise((r) => setTimeout(r, 4000))]);
-    const shot = await shotPromise;
+    let shot = await shotPromise;
     if (id !== askSeq) return;
     send("answer:space", { w: shot.imageWidth, h: shot.imageHeight });
+    shot = withPointer(shot, pointedAt, question);
+    send("answer:pointer", shot.pointer);
     const followUp = visualsOnScreen || Date.now() - lastAnswerAt < FOLLOW_UP_MS;
     if (!followUp && provider.turns > 0) await provider.newTopic();
     const started = Date.now();
@@ -216,6 +221,25 @@ function shoot() {
   return shot;
 }
 
+/**
+ * Adds where the user pointed. When the question says "this"/"here", the pointer is ringed on the screenshot and a
+ * close-up of that spot goes along, and the overlay snaps nearby marks onto it.
+ */
+function withPointer(shot, pointedAt, question) {
+  const pt = toImage(pointedAt, shot);
+  if (!pt) return { ...shot, pointer: null };
+  const meant = POINTING.test(question);
+  if (!meant) return { ...shot, pointer: { ...pt, meant } };
+  try {
+    const marked = markPointer(shot, pt);
+    log(`[pointer] "${question}" points at ${pt.x},${pt.y}`);
+    return { ...shot, jpeg: marked.jpeg, closeup: marked.closeup, closeupBox: marked.closeupBox, pointer: { ...pt, meant } };
+  } catch (err) {
+    log(`[pointer] ${err.message}`);
+    return { ...shot, pointer: { ...pt, meant } };
+  }
+}
+
 const captureWaits = new Map();
 function hideDrawings() {
   if (!overlay || overlay.__contentProtected) return Promise.resolve(null);
@@ -231,6 +255,34 @@ function hideDrawings() {
   });
 }
 
+// The talk key: a tap starts listening (which ends by itself when you pause, or with another tap), and holding it is
+// push-to-talk. Windows repeats a held hotkey about 30 times a second, so while listening, any further event means
+// "held (or tapped again)" and listening stops once the events go quiet. Timing alone is not enough: a screen capture
+// can stall the main thread, and the repeats queued meanwhile then arrive in one burst.
+const talkKey = { lastAt: 0, held: false, stopTimer: 0 };
+const KEY_QUIET_MS = 350;
+
+function onTalkKey() {
+  const now = Date.now();
+  const gap = now - talkKey.lastAt;
+  talkKey.lastAt = now;
+  if (!listening) {
+    if (gap < 250) return; // repeats from a key still held after listening ended
+    talkKey.held = false;
+    startListening();
+    return;
+  }
+  if (!talkKey.held) {
+    talkKey.held = true;
+    send("listen:hold");
+  }
+  clearTimeout(talkKey.stopTimer);
+  talkKey.stopTimer = setTimeout(() => {
+    talkKey.held = false;
+    if (listening) send("listen:stop");
+  }, KEY_QUIET_MS);
+}
+
 function startListening() {
   if (listening) {
     send("listen:stop");
@@ -239,6 +291,7 @@ function startListening() {
   followDisplay();
   listening = true;
   setWake(false);
+  pointer.start();
   pendingShot = shoot();
   send("listen:start", { wake: false });
 }
@@ -246,7 +299,10 @@ function startListening() {
 async function onListenResult(payload) {
   const wake = !!payload?.wake;
   if (!wake || payload?.pcm) log(`[listen] ${payload?.pcm ? `${(payload.pcm.byteLength / 4 / 16000).toFixed(1)} s of audio` : payload?.error ? `error: ${payload.error}` : "nothing heard"}${wake ? " (wake check)" : ""}`);
-  if (!wake) listening = false;
+  if (!wake) {
+    listening = false;
+    pointerAt = pointer.stop();
+  }
   if (!payload?.pcm) {
     if (wake) setTimeout(wakeTick, 200);
     else setWake(true);
@@ -268,7 +324,7 @@ async function onListenResult(payload) {
     const rest = text.slice(m[0].length).trim();
     if (rest.split(/\s+/).length < 2) return startListening(); // just "Hey Talky": listen for the question
     send("heard", { text: rest });
-    return ask(rest, shoot());
+    return ask(rest, shoot(), screen.getCursorScreenPoint());
   }
   if (!text || /^[\s.,!?]*$/.test(text) || /^(thank you\.?|you)$/i.test(text.trim())) {
     status("error", "Didn't catch that", 2200);
@@ -276,7 +332,7 @@ async function onListenResult(payload) {
     return;
   }
   send("heard", { text });
-  ask(text, pendingShot || shoot());
+  ask(text, pendingShot || shoot(), pointerAt);
 }
 
 // "Hey Talky": while idle, the overlay keeps recording short utterances and the worker checks each for the phrase.
@@ -313,6 +369,7 @@ function setVisuals(on) {
 async function openAskBar() {
   if (!askWin) createAskWindow();
   followDisplay();
+  pointerAt = screen.getCursorScreenPoint();
   pendingShot = shoot();
   const b = activeDisplay().workArea;
   askWin.setBounds({ x: Math.round(b.x + b.width / 2 - 340), y: b.y + 56, width: 680, height: 66 });
@@ -348,7 +405,7 @@ function registerHotkeys() {
     log(`[hotkeys] none of ${[wanted, ...fallbacks].join(", ")} could be registered`);
     return "";
   };
-  keys.talk = claim(cfg.talkHotkey, TALK_FALLBACKS, startListening);
+  keys.talk = claim(cfg.talkHotkey, TALK_FALLBACKS, onTalkKey);
   keys.type = claim(cfg.typeHotkey, TYPE_FALLBACKS, openAskBar);
   if (visualsOnScreen) setVisuals(true);
 }
@@ -428,6 +485,8 @@ function buildTray() {
 function wireIpc() {
   ipcMain.on("overlay:ready", () => {
     overlayReady = true;
+    // The first capture after launch is several times slower than the rest; get it out of the way now.
+    setTimeout(() => captureScreen().catch(() => {}), 1500);
     sendSettings();
     status("idle", `Talky · ${hotkeyLabel(keys.talk)} to talk, ${hotkeyLabel(keys.type)} to type`, 4000);
     setWake(true);
@@ -444,7 +503,7 @@ function wireIpc() {
   ipcMain.handle("tts:synth", async (_e, text) => (cfg.voice === "neural" ? voice.synth(text, cfg.voiceName) : null));
   ipcMain.on("ask:submit", (_e, text) => {
     askWin?.hide();
-    ask(text, pendingShot || shoot());
+    ask(text, pendingShot || shoot(), pointerAt);
   });
   ipcMain.on("ask:hide", () => askWin?.hide());
 }
@@ -463,9 +522,11 @@ function startDevServer() {
     const json = (code, obj) => res.writeHead(code, { "content-type": "application/json" }).end(JSON.stringify(obj));
     try {
       if (req.method === "POST" && url.pathname === "/ask") {
-        const text = url.searchParams.get("q") || JSON.parse(body.toString() || "{}").text;
+        const req = body.length ? JSON.parse(body.toString()) : {};
+        const text = url.searchParams.get("q") || req.text;
         followDisplay();
-        ask(text, shoot());
+        const at = Array.isArray(req.pointer) ? { x: req.pointer[0], y: req.pointer[1] } : screen.getCursorScreenPoint();
+        ask(text, shoot(), at);
         return json(200, { ok: true });
       }
       if (req.method === "POST" && url.pathname === "/ops") {
@@ -475,6 +536,10 @@ function startDevServer() {
       if (req.method === "POST" && url.pathname === "/clear") {
         clearScreen();
         return json(200, { ok: true });
+      }
+      if (req.method === "POST" && url.pathname === "/talkkey") {
+        onTalkKey(); // one hotkey event, as Windows sends it (a held key sends ~30 a second)
+        return json(200, { ok: true, listening, held: talkKey.held });
       }
       if (req.method === "POST" && url.pathname === "/listen") {
         startListening();

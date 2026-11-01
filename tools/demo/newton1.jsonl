@@ -1,0 +1,19 @@
+{"op":"space","w":1600,"h":900}
+{"op":"say","text":"Newton's first law: an object keeps doing what it's doing unless something pushes it."}
+{"op":"scene","id":"s1","box":[860,150,1560,660],"view":"side","title":"First law: no push, no change"}
+{"op":"part","scene":"s1","id":"floor","shape":"floor","size":[10,3],"pos":[0,0,0]}
+{"op":"say","text":"Here's a ball resting on a table, perfectly still, with nothing pushing it."}
+{"op":"part","scene":"s1","id":"ball","shape":"sphere","size":[0.35],"pos":[-3,1.35,0],"color":"#e8615a","material":"plastic"}
+{"op":"part","scene":"s1","id":"table","shape":"box","size":[10,0.3,2],"pos":[0,1.2,0],"color":"#9a7b52","material":"matte"}
+{"op":"tag","scene":"s1","target":"ball","text":"Still, or cruising","color":"pink"}
+{"op":"say","text":"It stays put forever. Give it one push and it glides on at a steady speed, no engine needed."}
+{"op":"force","scene":"s1","id":"f1","from":[-3,1.35,0],"to":[-1.8,1.35,0],"color":"pink","text":"one push"}
+{"op":"wait","ms":400}
+{"op":"move","scene":"s1","target":"ball","by":[6,0,0],"seconds":2.5}
+{"op":"say","text":"It only slows down because friction pushes back. Take friction away, and it never stops."}
+{"op":"move","scene":"s1","target":"ball","by":[-6,0,0],"seconds":1.5,"wait":false}
+{"op":"flow","scene":"s1","path":[[-3,1.7,0],[-1,1.7,0],[1,1.7,0],[3,1.7,0]],"color":"#4aa3ff","text":"no friction"}
+{"op":"card","id":"c1","box":[880,690,1360,880],"kicker":"Newton's first law","title":"Why it feels right"}
+{"op":"row","card":"c1","items":[{"box":"rest","color":"blue"},{"arrow":""},{"text":"stays at rest"}]}
+{"op":"row","card":"c1","items":[{"box":"moving","color":"green"},{"arrow":""},{"text":"same speed, same line"}]}
+{"op":"row","card":"c1","items":[{"icon":"bolt"},{"text":"change only with a net force"}]}

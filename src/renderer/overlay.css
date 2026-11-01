@@ -320,6 +320,22 @@ svg.marks {
   opacity: 0;
   transition: opacity 400ms ease;
   cursor: grab;
+  border-radius: 16px;
+  background-color: var(--paper);
+  background-image: radial-gradient(ellipse at 50% 35%, #fffdf8 0%, rgba(251, 248, 241, 0) 70%);
+  box-shadow: 0 18px 50px rgba(20, 16, 8, 0.28), 0 2px 6px rgba(20, 16, 8, 0.12), inset 0 0 0 1px rgba(60, 50, 30, 0.08);
+}
+.scene3d.float {
+  background: none;
+  box-shadow: none;
+}
+.scene-title {
+  position: absolute;
+  left: 18px;
+  top: 12px;
+  font: 700 21px/1.15 var(--hand);
+  color: var(--ink);
+  pointer-events: none;
 }
 .scene3d.in {
   opacity: 1;

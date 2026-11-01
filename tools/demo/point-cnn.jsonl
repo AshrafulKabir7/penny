@@ -1,0 +1,11 @@
+{"op":"space","w":1600,"h":900}
+{"op":"say","text":"That green square is one single output unit of the convolution, at the top-left corner of the 3×3 map."}
+{"op":"circle","box":[596,356,630,390]}
+{"op":"say","text":"All nine pixels in the red 3×3 patch funnel into it — the red arrows are those nine local links."}
+{"op":"arrow","from":[527,382],"to":[613,373],"text":"9 weights"}
+{"op":"say","text":"The green frame around it is the 3×3 output map, one cell per position the kernel lands on."}
+{"op":"circle","box":[586,346,648,397]}
+{"op":"card","id":"c1","box":[1230,520,1560,760],"kicker":"local 3×3 patch → one output","title":"What that cell holds"}
+{"op":"row","card":"c1","items":[{"box":"9 inputs","color":"pink"},{"arrow":""},{"icon":"chip"},{"text":"K + bias"}]}
+{"op":"row","card":"c1","items":[{"text":"one number"}],"caption":"a single activation value"}
+{"op":"say","text":"So it's just one activation: the sum of those nine pixels times the same kernel K, plus a bias."}

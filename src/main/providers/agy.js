@@ -112,7 +112,13 @@ class AgyProvider {
     await proc.ready;
     const file = `screen-${proc.turns + 1}.jpg`;
     writeFileSync(join(proc.dir, file), shot.jpeg);
-    const text = buildTurn({ question, shot, imageRef: file, firstTurn: proc.turns === 0, visualsOnScreen });
+    let closeupRef = null;
+    if (shot.closeup) {
+      const closeup = `pointer-${proc.turns + 1}.jpg`;
+      writeFileSync(join(proc.dir, closeup), shot.closeup);
+      closeupRef = `the file ${closeup} (open it too)`;
+    }
+    const text = buildTurn({ question, shot, imageRef: file, closeupRef, firstTurn: proc.turns === 0, visualsOnScreen });
     this.busy = proc;
     try {
       const res = await proc.turn(text, onDelta);

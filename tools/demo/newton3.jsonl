@@ -1,0 +1,17 @@
+{"op":"space","w":1600,"h":900}
+{"op":"say","text":"Every push comes with an equal push back. Watch two skaters shove off each other."}
+{"op":"scene","id":"s1","box":[860,150,1560,640],"view":"side","title":"Newton's Third Law"}
+{"op":"part","scene":"s1","id":"floor","shape":"floor","size":[9,3],"pos":[0,0,0]}
+{"op":"part","scene":"s1","id":"boardA","shape":"skateboard","size":[1],"pos":[-0.85,0,0]}
+{"op":"part","scene":"s1","id":"ana","shape":"person","size":[1.7],"pose":"push","pos":[-0.85,0.14,0],"color":"#8fb4ec","parent":"boardA"}
+{"op":"part","scene":"s1","id":"boardB","shape":"skateboard","size":[1],"pos":[0.85,0,0]}
+{"op":"part","scene":"s1","id":"ben","shape":"person","size":[1.7],"pose":"push","pos":[0.85,0.14,0],"rot":[0,180,0],"color":"#f2a65a","parent":"boardB"}
+{"op":"tag","scene":"s1","target":"ana","text":"Ana","color":"blue"}
+{"op":"tag","scene":"s1","target":"ben","text":"Ben","color":"yellow"}
+{"op":"say","text":"Ana's hands push Ben away, and in the same instant Ben's hands push back on her with exactly the same force."}
+{"op":"force","scene":"s1","id":"onBen","from":[0.05,1.25,0],"to":[1.9,1.25,0],"color":"pink","text":"Ana on Ben"}
+{"op":"force","scene":"s1","id":"onAna","from":[-0.05,1.25,0],"to":[-1.9,1.25,0],"color":"blue","text":"Ben on Ana"}
+{"op":"say","text":"Same size, opposite directions, but each acts on a different person, so neither cancels the other."}
+{"op":"move","scene":"s1","target":"boardA","by":[-2.4,0,0],"seconds":2.5,"wait":false}
+{"op":"move","scene":"s1","target":"boardB","by":[2.4,0,0],"seconds":2.5}
+{"op":"say","text":"That's why they both glide apart: one interaction, two equal and opposite forces."}

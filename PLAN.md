@@ -116,6 +116,32 @@ What we learned while building it:
 - Command Code's `effort: off` is what makes it real-time. With thinking left on, the first word takes 15–20 s.
 - `Ctrl+Alt+Space` is taken on this machine, so Talky falls back to `Ctrl+Shift+Space`.
 
+### Round 2 (after the first hands-on test)
+
+What came up when it was used for real, and what changed:
+
+- **3D was not meaningful** (Newton's third law came out as a blob pushing a wall). Scenes now have:
+  - ready-made objects: a posable person with 13 poses, car, rocket, skateboard, table, wheel, gear, spring, and a
+    floor that is left out of the camera fit
+  - a `force` op for labelled 3D arrows, drawn on top of objects
+  - `move` with `by` and `"wait":false` for simultaneous motion
+  - a camera that follows moving parts
+  - a paper panel behind each scene, with a title
+
+  The prompt asks for physics as a small experiment and includes a worked third-law example. Checked with first
+  law, third law and rocket questions.
+- **Pointing at things.** The pointer is sampled while the user talks, and the spot where it last rested counts.
+  When the question says this, that, here or there, the pointer is ringed on the screenshot, a 2× close-up of that spot
+  goes along, `"pointer"` can stand in for coordinates, and marks near the pointer snap onto it. Tested on a CNN slide:
+  "explain this" while pointing at the "Shared" bullet explains weight sharing and circles that word. Without the
+  pointer, it explains the whole slide.
+- **Holding the hotkey** caused a storm of captures and listens, because Windows repeats a held hotkey about 30 times a
+  second. It is now push-to-talk: while listening, further events mean "held" and listening stops when they go quiet.
+  This survives main-thread stalls where the repeats arrive in a burst. Tested by sending the exact event patterns to
+  the control server.
+- **Whisper only loaded when a request arrived.** On Windows, a blocking stdin read held up the PyTorch import in
+  another thread. It now loads before the stdin reader starts, and is ready about 14 s after launch.
+
 ## 5. Risks and what we do about them
 
 - **Latency**: CLI start-up takes 7–14 s, so the processes are started when the app opens and kept warm. Ops stream

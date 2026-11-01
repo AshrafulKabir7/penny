@@ -33,7 +33,7 @@ class HtmlMark {
 }
 
 export async function circle(stage, op) {
-  const [x0, y0, x1, y1] = stage.box(op.box);
+  const [x0, y0, x1, y1] = stage.markBox(op.box);
   const m = new SvgMark(stage);
   const rc = roughFor(stage.marksSvg);
   const w = Math.max(30, x1 - x0) * 1.18 + 18;
@@ -45,7 +45,7 @@ export async function circle(stage, op) {
 }
 
 export async function underline(stage, op) {
-  const [x0, , x1, y1] = stage.box(op.box);
+  const [x0, , x1, y1] = stage.markBox(op.box);
   const m = new SvgMark(stage);
   const rc = roughFor(stage.marksSvg);
   m.g.appendChild(rc.curve([[x0 - 4, y1 + 4], [(x0 + x1) / 2, y1 + 7], [x1 + 6, y1 + 3]], { stroke: MARKER, strokeWidth: 3, roughness: 1, seed: nextSeed() }));
@@ -55,7 +55,7 @@ export async function underline(stage, op) {
 }
 
 export async function highlight(stage, op) {
-  const [x0, y0, x1, y1] = stage.box(op.box);
+  const [x0, y0, x1, y1] = stage.markBox(op.box);
   const el = document.createElement("div");
   el.className = "highlight";
   Object.assign(el.style, { left: `${x0 - 3}px`, top: `${y0 - 2}px`, width: `${x1 - x0 + 6}px`, height: `${Math.max(8, y1 - y0 + 4)}px` });
@@ -76,7 +76,7 @@ function arrowHead(rc, g, [fx, fy], [tx, ty], opts) {
 
 export async function arrow(stage, op) {
   const from = stage.point(op.from, [600, 500]);
-  const to = stage.point(op.to, [500, 500]);
+  const to = stage.markPoint(op.to, [500, 500]);
   const m = new SvgMark(stage);
   const rc = roughFor(stage.marksSvg);
   const opts = { stroke: INK, strokeWidth: 2.2, roughness: 0.9, seed: nextSeed() };
@@ -105,7 +105,7 @@ export async function arrow(stage, op) {
 }
 
 export async function label(stage, op) {
-  const at = stage.point(op.at, [500, 500]);
+  const at = stage.markPoint(op.at, [500, 500]);
   const c = color(op.color || "blue");
   const el = document.createElement("div");
   el.className = "tag screen-tag";
@@ -136,7 +136,7 @@ export async function label(stage, op) {
 }
 
 export async function point(stage, op) {
-  const at = stage.point(op.at, [500, 500]);
+  const at = stage.markPoint(op.at, [500, 500]);
   await stage.pen.moveTo(at[0], at[1]);
   const ripple = document.createElement("div");
   ripple.className = "ripple";
