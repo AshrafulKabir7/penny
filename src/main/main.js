@@ -14,6 +14,7 @@ const { testOpenAiKey } = require("./providers/openai");
 const { codexStatus, codexLogin } = require("./providers/codex");
 const { testGeminiKey } = require("./providers/gemini");
 const { claudeSignInStatus, claudeSignIn, googleAccountStatus, googleSignIn } = require("./signin");
+const { registerNativeHost } = require("./native-host");
 const { VoiceWorker } = require("./voice");
 const { trayIconPng } = require("./icon");
 
@@ -830,6 +831,8 @@ if (!app.requestSingleInstanceLock()) {
     registerHotkeys();
     startProvider();
     if (DEV || cfg.devServer) startDevServer();
+    // Penny for Chrome can use the accounts signed in here.
+    registerNativeHost({ exe: process.execPath, script: join(__dirname, "..", "native", "host.js"), dir: app.getPath("userData"), log });
     discoverModels()
       .then((ids) => {
         extraModels = ids;

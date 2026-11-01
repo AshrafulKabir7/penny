@@ -47,17 +47,26 @@ hint (`sk-ant…9xQz`). **Test** makes one tiny request with the key, and **Remo
 
 ## Penny for Chrome
 
-The same drawings, on any web page, with your own Claude, OpenAI or Gemini API key. The model is called straight from
-the browser; the key stays in the browser's extension storage (not synced), and a page is only captured when you ask
-about it there.
+The same drawings, on any web page. Two ways to reach a model, both your own:
+
+- **An API key** (Claude, OpenAI or Gemini). The model is called straight from the browser; the key stays in the
+  browser's extension storage (not synced).
+- **An account you sign in to**: ChatGPT (your ChatGPT plan, through Codex), Claude (a Claude API account, through
+  Anthropic's `ant` CLI) or Google (Gemini, through Antigravity). This goes through the Penny app for Windows: the app
+  registers itself as a Chrome/Edge native messaging host (`app.penny.host`, per-user registry keys, rewritten at each
+  start) and runs [src/native/host.js](src/native/host.js), which uses the same sign-ins as the app. Install the app and
+  open it once. Claude Pro/Max chat subscriptions can't be used: Anthropic doesn't allow third-party apps to use them.
+
+A page is only captured when you ask about it there.
 
 1. Unzip `penny-chrome.zip`, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the folder.
-2. Add your key on the settings page that opens.
+2. On the settings page that opens, add an API key or sign in with ChatGPT, Claude or Google.
 3. On any page press **Alt+Shift+P** (or click Penny's toolbar button), then type your question or press the mic and
    talk. Say "this" while pointing, or circle something as you talk. **Esc** clears the drawings.
 
 The extension reuses the app's drawing engine (`src/renderer`), prompt and API providers; its own code is in
-[extension/](extension/). Build it with `npm run build:extension` (writes `dist/penny-chrome/` and `dist/penny-chrome.zip`).
+[extension/](extension/). Its ID is fixed by the public `key` in its manifest (`mnpcmhoideneafghojodngbcomangdbg`), which
+the app's host allows; if you installed an earlier build, remove it and load the new one. Build it with `npm run build:extension` (writes `dist/penny-chrome/` and `dist/penny-chrome.zip`).
 
 ## Run
 
@@ -171,6 +180,8 @@ src/main/providers/  acp.js (Command Code), agy.js (Antigravity), anthropic.js (
 src/main/credentials.js  the user's API keys, encrypted with Windows' per-user protection
 src/main/prompt.js   the scene language the model writes
 src/main/gesture.js  what pointing and mouse gestures mean (shared with the extension)
+src/main/native-host.js  registers the app as Penny for Chrome's native messaging host
+src/native/host.js   that host: status, sign-in and asks with the accounts signed in on this PC
 src/renderer/    overlay page: engine/ (parser, stage, card, marks, scene3d, sketch, icons), voice.js
 voice/penny_voice.py Whisper + edge-tts worker
 tools/           preview server, model probe, demo replies, extension build, shot capture

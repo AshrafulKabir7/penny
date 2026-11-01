@@ -3,6 +3,7 @@
   "name": "Penny",
   "description": "Ask about the page you're on. Penny answers by drawing on it: notes, arrows, diagrams and 3D, using your own AI key.",
   "version": "0.1.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApcxhTC4Y22ks6dFmiNI4/g6zI6QAxr77rag1N/yE9pSZyDR19hnUaamqlAfTrM1MbQdyYj+S3XiNrvZCHbrnKR8O8ghxiZHSb4kJq9Z83Tc+bbO/oFYF2Gma+LEiGAbh+BwnwUdRtMNLZZWCOkJJcpIQ2ttz/f+wiUvJiZPuBkm3i8ydutSUrCopTywRKuEdsZze0VQp/FwDRNxualr57Oh/mtQZ4yWb4AmREafdA2rwY4GMr10QiXzqkGaVdiqNwd5cdfbU3JDJyMbr2ThUUS3uDHOIadA4gSpA4UnIDPStQlFe7CQ7IL078uelZeFz5IstkF9k/i2RD0R+GJjSdwIDAQAB",
   "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
   "action": {
     "default_title": "Ask Penny (Alt+Shift+P)",
@@ -13,7 +14,7 @@
   },
   "background": { "service_worker": "background.js", "type": "module" },
   "options_page": "options.html",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": ["activeTab", "scripting", "storage", "nativeMessaging"],
   "host_permissions": ["https://api.anthropic.com/*", "https://api.openai.com/*", "https://generativelanguage.googleapis.com/*"],
   "web_accessible_resources": [
     { "resources": ["overlay.html"], "matches": ["<all_urls>"] }

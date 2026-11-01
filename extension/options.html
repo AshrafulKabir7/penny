@@ -140,21 +140,59 @@
         opacity: 0.5;
         cursor: default;
       }
-      .key {
+      .group {
+        margin: 6px 0 8px;
+        color: var(--muted);
+        font-size: 12.5px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .notice {
+        margin: 0 0 12px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: #fff6d6;
+        font-size: 14px;
+      }
+      a.button {
+        display: inline-flex;
+        align-items: center;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 20px;
+        background: var(--ink);
+        color: #fff;
+        font: 600 14px var(--ui);
+        text-decoration: none;
+      }
+      .account .hint {
+        margin: 2px 0 0;
+      }
+      .account .state.saved::before {
+        content: "●";
+        margin-right: 5px;
+        color: var(--ok);
+      }
+      .key,
+      .account {
         padding: 14px 0;
         border-top: 1px solid var(--line);
       }
-      .key:first-of-type {
+      .key:first-of-type,
+      #no-app + .account {
         border-top: 0;
       }
-      .key h3 {
+      .key h3,
+      .account h3 {
         display: flex;
         align-items: center;
         gap: 8px;
         margin: 0 0 2px;
         font-size: 15px;
       }
-      .key .state {
+      .key .state,
+      .account .state {
         font-weight: 500;
         font-size: 13px;
         color: var(--muted);
@@ -213,11 +251,18 @@
 
       <section>
         <h2>Model</h2>
-        <p class="hint">Which AI answers your questions. You need an API key for it (below).</p>
+        <p class="hint">Which AI answers your questions: with an API key, or with an account you sign in to (both below).</p>
+        <p class="group">With an API key</p>
         <div class="providers">
-          <label><input type="radio" name="provider" value="claude" /><b>Claude</b><small>Anthropic API</small></label>
-          <label><input type="radio" name="provider" value="openai" /><b>OpenAI</b><small>OpenAI API</small></label>
-          <label><input type="radio" name="provider" value="gemini" /><b>Gemini</b><small>Google AI Studio</small></label>
+          <label><input type="radio" name="provider" value="claude" /><b>Claude</b><small>Anthropic API key</small></label>
+          <label><input type="radio" name="provider" value="openai" /><b>OpenAI</b><small>OpenAI API key</small></label>
+          <label><input type="radio" name="provider" value="gemini" /><b>Gemini</b><small>Google AI Studio key</small></label>
+        </div>
+        <p class="group">With your account</p>
+        <div class="providers">
+          <label><input type="radio" name="provider" value="chatgpt" /><b>ChatGPT</b><small>Your ChatGPT plan</small></label>
+          <label><input type="radio" name="provider" value="claude-account" /><b>Claude</b><small>Your Claude API account</small></label>
+          <label><input type="radio" name="provider" value="google-account" /><b>Google</b><small>Your Google account</small></label>
         </div>
         <div class="row">
           <span>Model</span>
@@ -232,6 +277,39 @@
             <option value="default">Normal</option>
             <option value="high">Deep (slower)</option>
           </select>
+        </div>
+      </section>
+
+      <section>
+        <h2>Sign in with your account</h2>
+        <p class="hint">
+          Use an account you already have. Signing in goes through the Penny app for Windows, which uses each company's own tool on your PC (Codex for ChatGPT, Anthropic's ant CLI for
+          Claude, Antigravity for Google). Penny never sees your password.
+        </p>
+        <div class="notice" id="no-app" hidden>
+          <b>The Penny app isn't set up on this PC yet.</b> Install it, open it once, then press <i>Check again</i>.
+          <div class="row">
+            <a class="button" href="https://github.com/AshrafulKabir7/penny/releases/latest/download/Penny-Setup.exe" target="_blank" rel="noreferrer">Download Penny for Windows</a>
+            <button class="ghost" id="recheck">Check again</button>
+          </div>
+        </div>
+        <div class="account" data-account="chatgpt" data-provider="chatgpt">
+          <h3>ChatGPT <span class="state">checking…</span></h3>
+          <p class="hint">Uses your ChatGPT plan through OpenAI's Codex. Answers arrive all at once, so drawing starts a little later.</p>
+          <div class="row"><button class="signin">Sign in with ChatGPT</button><button class="ghost use">Use ChatGPT</button></div>
+          <div class="result"></div>
+        </div>
+        <div class="account" data-account="claude" data-provider="claude-account">
+          <h3>Claude <span class="state">checking…</span></h3>
+          <p class="hint">A Claude API account (Claude Console), billed to that account. Claude Pro and Max chat subscriptions can't be used: Anthropic doesn't allow other apps to use them.</p>
+          <div class="row"><button class="signin">Sign in with Claude</button><button class="ghost use">Use Claude</button></div>
+          <div class="result"></div>
+        </div>
+        <div class="account" data-account="google" data-provider="google-account">
+          <h3>Google <span class="state">checking…</span></h3>
+          <p class="hint">Gemini with your Google account, through Antigravity.</p>
+          <div class="row"><button class="signin">Sign in with Google</button><button class="ghost use">Use Google</button></div>
+          <div class="result"></div>
         </div>
       </section>
 

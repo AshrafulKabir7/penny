@@ -1,13 +1,15 @@
 // Penny for Chrome, background worker. Clicking the toolbar button (or Alt+Shift+P) lays Penny's overlay on the tab.
 // A question from its ask bar is answered here: the visible tab is captured with Penny's drawings hidden, the pointer
-// is marked on it, and the model's scene ops stream back to the overlay. The model is called straight from the
-// browser with the user's own API key, kept in this browser's extension storage; Penny has no server.
+// is marked on it, and the model's scene ops stream back to the overlay. Two ways to reach a model, both the user's
+// own: an API key (kept in this browser's extension storage; the model is called straight from the browser), or an
+// account signed in through the Penny app for Windows (ChatGPT, Claude API, Google), reached over native messaging.
+// Penny has no server.
 
 import { ClaudeApiProvider, testClaudeKey } from "../src/main/providers/anthropic.js";
 import { OpenAiApiProvider, testOpenAiKey } from "../src/main/providers/openai.js";
 import { GeminiApiProvider, testGeminiKey } from "../src/main/providers/gemini.js";
 import { POINTING, gestureOnShot } from "../src/main/gesture.js";
-import { KEY_FOR, loadSettings as settings } from "./models.js";
+import { ACCOUNTS, KEY_FOR, loadSettings as settings } from "./models.js";
 
 const MAX_WIDTH = 1600; // screenshot width sent to the model
 const FOLLOW_UP_MS = 5 * 60_000;
@@ -19,8 +21,9 @@ function clientOptions(provider, s) {
   return { dangerouslyAllowBrowser: true, ...(base ? { baseURL: base } : {}) };
 }
 
-function createProvider(s) {
+function createProvider(s, tabId) {
   const id = s.provider;
+  if (ACCOUNTS[id]) return new AppProvider({ model: `${ACCOUNTS[id].prefix}:${s.models[id]}`, session: String(tabId) });
   const options = { model: s.models[id], getKey: () => s.keys[KEY_FOR[id]], clientOptions: clientOptions(id, s), log: console.log };
   const provider = id === "openai" ? new OpenAiApiProvider(options) : id === "gemini" ? new GeminiApiProvider(options) : new ClaudeApiProvider(options);
   provider.effort = s.effort;
@@ -109,13 +112,14 @@ async function ask(tabId, t, { question, pointer, gesture, view }) {
   send(t, "answer:start", { question });
   try {
     const s = await settings();
-    if (!s.keys[KEY_FOR[s.provider]]) {
+    if (KEY_FOR[s.provider] && !s.keys[KEY_FOR[s.provider]]) {
       chrome.runtime.openOptionsPage();
       throw Object.assign(new Error("Add your API key in Penny's settings first."), { needsKey: true });
     }
     const providerKey = JSON.stringify([s.provider, s.models[s.provider], s.keys[KEY_FOR[s.provider]], s.devBaseUrls]);
     if (t.providerKey !== providerKey) {
-      t.provider = createProvider(s);
+      t.provider?.dispose();
+      t.provider = createProvider(s, tabId);
       t.providerKey = providerKey;
     }
     t.provider.effort = s.effort;
@@ -139,7 +143,7 @@ async function ask(tabId, t, { question, pointer, gesture, view }) {
   } catch (err) {
     if (err.cancelled || id !== t.askSeq) return;
     console.warn("[penny]", err);
-    if (err.needsKey) chrome.runtime.openOptionsPage();
+    if (err.needsKey || err.needsApp) chrome.runtime.openOptionsPage();
     send(t, "answer:error", { message: friendly(err) });
   }
 }
@@ -259,10 +263,101 @@ async function b64(blob) {
   return { toString: () => text };
 }
 
+// ---------------------------------------------------------------- the Penny app (accounts signed in on this PC)
+
+const HOST = "app.penny.host";
+const NO_APP = "Signing in needs the Penny app for Windows. Install it, open it once, then try again.";
+let app = null; // { port, handlers } while the app's host is connected
+let appSeq = 0;
+
+function appPort() {
+  if (app) return app;
+  const a = { port: chrome.runtime.connectNative(HOST), handlers: new Map() };
+  a.port.onMessage.addListener((msg) => a.handlers.get(msg.id)?.(msg));
+  a.port.onDisconnect.addListener(() => {
+    const why = chrome.runtime.lastError?.message || "";
+    const missing = /not found|forbidden/i.test(why);
+    for (const fn of a.handlers.values()) fn({ type: "error", missing, message: missing ? NO_APP : `The Penny app stopped answering${why ? ` (${why})` : ""}. Ask again.` });
+    if (app === a) app = null;
+  });
+  app = a;
+  return a;
+}
+
+/** One request to the app, resolved with its reply. */
+function appCall(msg) {
+  return new Promise((resolve) => {
+    const a = appPort();
+    const id = ++appSeq;
+    a.handlers.set(id, (reply) => {
+      a.handlers.delete(id);
+      resolve(reply);
+    });
+    a.port.postMessage({ ...msg, id });
+  });
+}
+
+/** A model reached through the Penny app with an account signed in there; same interface as the API providers. */
+class AppProvider {
+  constructor({ model, session }) {
+    this.model = model;
+    this.session = session;
+    this.effort = "off";
+    this.turnCount = 0;
+  }
+
+  get turns() {
+    return this.turnCount;
+  }
+
+  ask({ question, shot, visualsOnScreen, onDelta }) {
+    return new Promise((resolve, reject) => {
+      const a = appPort();
+      const id = ++appSeq;
+      let text = "";
+      a.handlers.set(id, (msg) => {
+        if (msg.type === "delta") {
+          text += msg.text;
+          return onDelta(msg.text);
+        }
+        a.handlers.delete(id);
+        if (msg.type === "end") {
+          this.turnCount++;
+          resolve({ text });
+        } else reject(Object.assign(new Error(msg.message), { cancelled: !!msg.cancelled, needsApp: !!msg.missing }));
+      });
+      const images = { jpeg: shot.jpeg.toString(), closeup: shot.closeup ? shot.closeup.toString() : null };
+      a.port.postMessage({ id, type: "ask", session: this.session, model: this.model, effort: this.effort, question, visualsOnScreen, shot: { ...shot, ...images } });
+    });
+  }
+
+  cancel() {
+    app?.port.postMessage({ type: "cancel", session: this.session });
+  }
+
+  newTopic() {
+    this.turnCount = 0;
+    app?.port.postMessage({ type: "new-topic", session: this.session });
+  }
+
+  dispose() {
+    this.cancel();
+  }
+}
+
 // ---------------------------------------------------------------- options page
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
-  if (sender.id !== chrome.runtime.id || msg?.type !== "test") return;
+  if (sender.id !== chrome.runtime.id) return;
+  if (msg?.type === "accounts") {
+    appCall({ type: "status" }).then((r) => reply(r.type === "error" ? { installed: false, missing: r.missing, message: r.message } : { installed: true, ...r }));
+    return true;
+  }
+  if (msg?.type === "login") {
+    appCall({ type: "login", account: msg.account }).then((r) => reply(r.type === "error" ? { error: r.message } : r));
+    return true;
+  }
+  if (msg?.type !== "test") return;
   const test = { claude: testClaudeKey, openai: testOpenAiKey, gemini: testGeminiKey }[msg.provider];
   settings()
     .then((s) => test(msg.key, msg.model, clientOptions(msg.provider, s)))

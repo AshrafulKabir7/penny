@@ -1,4 +1,5 @@
-// Penny for Chrome settings: the model, the user's own API keys (chrome.storage.local, never synced), and voice.
+// Penny for Chrome settings: the model, the user's own API keys (chrome.storage.local, never synced), accounts signed
+// in through the Penny app, and voice.
 
 import { MODELS, loadSettings } from "./models.js";
 
@@ -24,7 +25,57 @@ function render() {
     $(".test", box).disabled = !key;
     $(".remove", box).disabled = !key;
   }
+  renderAccounts();
 }
+
+// ---------------------------------------------------------------- accounts (through the Penny app)
+
+let accounts = null; // the app's answer: { installed, chatgpt, claude, google }
+const STATE = { "signed-in": "signed in", "signed-out": "not signed in", missing: "not installed", "no-cli": "ant CLI not installed" };
+
+function renderAccounts() {
+  $("#no-app").hidden = !accounts || accounts.installed;
+  for (const box of $$(".account")) {
+    const state = accounts?.installed ? accounts[box.dataset.account] : accounts ? "unavailable" : "checking";
+    const el = $(".state", box);
+    el.textContent = STATE[state] || (state === "checking" ? "checking…" : "needs the Penny app");
+    el.classList.toggle("saved", state === "signed-in");
+    $(".signin", box).hidden = state === "signed-in";
+    $(".signin", box).disabled = !accounts?.installed;
+    const use = $(".use", box);
+    use.hidden = state !== "signed-in";
+    use.disabled = s?.provider === box.dataset.provider;
+    use.textContent = use.disabled ? "In use" : `Use ${$("h3", box).firstChild.textContent.trim()}`;
+  }
+}
+
+async function checkAccounts() {
+  accounts = null;
+  renderAccounts();
+  accounts = await chrome.runtime.sendMessage({ type: "accounts" }).catch(() => ({ installed: false }));
+  renderAccounts();
+}
+
+for (const box of $$(".account")) {
+  const result = $(".result", box);
+  const say = (html, ok) => {
+    result.innerHTML = html;
+    result.className = `result ${ok == null ? "" : ok ? "ok" : "bad"}`;
+  };
+  $(".signin", box).addEventListener("click", async () => {
+    say("Finish signing in in the window that opened…", null);
+    const res = await chrome.runtime.sendMessage({ type: "login", account: box.dataset.account });
+    if (res?.error) {
+      const link = /^https:\/\//.test(res.install || "") ? ` <a href="${res.install}" target="_blank" rel="noreferrer">Get it here</a>.` : "";
+      return say(`${res.error.replace(/[<>&]/g, "")}${link}`, false);
+    }
+    say(box.dataset.account === "google" ? "Sign in with Google in the Antigravity window, then press Check again." : "Signed in.", true);
+    await checkAccounts();
+    if (accounts?.[box.dataset.account] === "signed-in") save({ provider: box.dataset.provider });
+  });
+  $(".use", box).addEventListener("click", () => save({ provider: box.dataset.provider }));
+}
+$("#recheck").addEventListener("click", checkAccounts);
 
 async function refresh() {
   s = await loadSettings();
@@ -77,3 +128,4 @@ chrome.commands.getAll().then((commands) => {
 
 chrome.storage.onChanged.addListener(refresh);
 refresh();
+checkAccounts();
