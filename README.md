@@ -7,6 +7,15 @@ explainer cards, sticky notes, and interactive 3D scenes you can drag around. Th
 Penny ships with no account of its own: each user brings theirs (see [Accounts](#accounts)). See [PLAN.md](PLAN.md) for
 the design and how it maps to the demo it is based on.
 
+## Download
+
+- **Windows app:** [Penny-Setup.exe](https://github.com/AshrafulKabir7/penny/releases/latest/download/Penny-Setup.exe) from the
+  [latest release](https://github.com/AshrafulKabir7/penny/releases/latest). It isn't code-signed yet, so Windows SmartScreen may
+  warn: choose **More info → Run anyway**.
+- **Penny for Chrome:** [penny-chrome.zip](https://github.com/AshrafulKabir7/penny/releases/latest/download/penny-chrome.zip), see
+  [Penny for Chrome](#penny-for-chrome).
+- **Website:** the landing page lives in [website/](website/) (static, no build step).
+
 ## Requirements
 
 - Windows 10 or 11, Node.js 20 or newer
@@ -34,6 +43,20 @@ in the tray).
 Keys are encrypted with Windows' per-user data protection and kept in `%APPDATA%\Penny\credentials.json`. Penny
 sends them only to their own provider, never writes them to the log, and the Accounts window only ever shows a masked
 hint (`sk-ant…9xQz`). **Test** makes one tiny request with the key, and **Remove** deletes it from the computer.
+
+## Penny for Chrome
+
+The same drawings, on any web page, with your own Claude, OpenAI or Gemini API key. The model is called straight from
+the browser; the key stays in the browser's extension storage (not synced), and a page is only captured when you ask
+about it there.
+
+1. Unzip `penny-chrome.zip`, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the folder.
+2. Add your key on the settings page that opens.
+3. On any page press **Alt+Shift+P** (or click Penny's toolbar button), then type your question or press the mic and
+   talk. Say "this" while pointing, or circle something as you talk. **Esc** clears the drawings.
+
+The extension reuses the app's drawing engine (`src/renderer`), prompt and API providers; its own code is in
+[extension/](extension/). Build it with `npm run build:extension` (writes `dist/penny-chrome/` and `dist/penny-chrome.zip`).
 
 ## Run
 
@@ -135,6 +158,10 @@ Command Code only offers some models on some plans. If a model is not on yours, 
   in `tools/demo`. Open `http://127.0.0.1:5199/src/renderer/overlay.html?mute=1&bg=<screenshot url>`.
 - `node tools/probe-models.mjs <model id> <screenshot.jpg> "<question>" [out.jsonl]` asks a model directly and saves
   its reply as a demo.
+- `npm run dist` builds the Windows installer (`dist/Penny-Setup.exe`); `npm run build:extension` builds Penny for Chrome.
+  Pushing a `v*` tag runs [.github/workflows/release.yml](.github/workflows/release.yml), which builds both and publishes
+  them as a GitHub release.
+- `npx electron tools/capture-shots.cjs [out dir] [demo ...]` renders saved demos offscreen as PNGs (website, README).
 
 ```
 src/main/        main process: main.js (windows, hotkeys, tray, ask loop), capture, settings, voice worker client
@@ -142,9 +169,12 @@ src/main/providers/  acp.js (Command Code), agy.js (Antigravity), anthropic.js (
                      codex.js (ChatGPT via Codex), cli.js (finding/stopping the CLIs)
 src/main/credentials.js  the user's API keys, encrypted with Windows' per-user protection
 src/main/prompt.js   the scene language the model writes
+src/main/gesture.js  what pointing and mouse gestures mean (shared with the extension)
 src/renderer/    overlay page: engine/ (parser, stage, card, marks, scene3d, sketch, icons), voice.js
 voice/penny_voice.py Whisper + edge-tts worker
-tools/           preview server, model probe, demo replies
+tools/           preview server, model probe, demo replies, extension build, shot capture
+extension/       Penny for Chrome: background worker, page overlay frame, ask bar, settings page
+website/         the landing page (static, deployed on Vercel)
 ```
 
 ## Troubleshooting

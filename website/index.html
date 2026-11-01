@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Penny: ask out loud, see it drawn</title>
+  <meta name="description" content="Penny is a free, open-source AI tutor for Windows that lives on your screen. Point at anything and ask out loud: it answers in a few spoken sentences while drawing labels, diagrams and 3D models right on top of what you're looking at.">
+  <meta name="theme-color" content="#fffaf4">
+  <meta name="color-scheme" content="light">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Penny">
+  <meta property="og:title" content="Penny: ask out loud, see it drawn">
+  <meta property="og:description" content="An AI tutor that lives on your screen. Ask out loud about anything you see, and Penny answers while it draws labels, diagrams and 3D models on top of it. Free and open source for Windows.">
+  <meta property="og:image" content="assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Penny drawing a labelled 3D jet-engine cut-away over a web page.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Penny: ask out loud, see it drawn">
+  <meta name="twitter:description" content="An AI tutor that lives on your screen. Ask out loud, and it answers while it draws on top of what you're looking at.">
+  <meta name="twitter:image" content="assets/og.png">
+
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preload" as="image" href="assets/shots/engine.jpg" fetchpriority="high">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <!-- Reusable icons -->
+  <svg width="0" height="0" class="sr-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-pen" viewBox="0 0 32 32">
+        <path d="M4 3 L27 14 L16 17 L12 28 Z" fill="#ffd23f" stroke="#2d2b28" stroke-width="2" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="i-windows" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M3 3h8.4v8.4H3zM12.6 3H21v8.4h-8.4zM3 12.6h8.4V21H3zM12.6 12.6H21V21h-8.4z"/>
+      </symbol>
+      <symbol id="i-chrome" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r="20" fill="#fff"/>
+        <path fill="#ea4335" d="M7.28 13.03A20 20 0 0 1 41.86 15H24a9 9 0 0 0-7.79 13.5z"/>
+        <path fill="#fbbc04" d="M41.86 15A20 20 0 0 1 22.86 43.97l8.93-15.47A9 9 0 0 0 24 15z"/>
+        <path fill="#34a853" d="M22.86 43.97A20 20 0 0 1 7.28 13.03l8.93 15.47a9 9 0 0 0 15.58 0z"/>
+        <circle cx="24" cy="24" r="7.2" fill="#1a73e8"/>
+      </symbol>
+      <symbol id="i-github" viewBox="0 0 16 16">
+        <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+      </symbol>
+      <symbol id="i-star" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.5L12 17.5l-5.8 3.05 1.1-6.5-4.7-4.6 6.5-.95z"/>
+      </symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5"/></g>
+      </symbol>
+      <symbol id="i-speaker" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9.2 9.2 0 0 1 0 13"/></g>
+      </symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2.5"/></g>
+      </symbol>
+      <symbol id="i-download" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/></g>
+      </symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/>
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 5v14M5 12h14"/>
+      </symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/>
+      </symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4M12 17h.01"/></g>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- ============================================================ HERO -->
+  <div class="hero" id="top">
+    <div class="hero-panel">
+      <div class="glow glow-1" aria-hidden="true"></div>
+      <div class="glow glow-2" aria-hidden="true"></div>
+      <div class="glow glow-3" aria-hidden="true"></div>
+      <div class="glow glow-4" aria-hidden="true"></div>
+
+      <span class="emoji e-pencil" data-depth="26" aria-hidden="true">✏️</span>
+      <span class="emoji e-bulb" data-depth="18" aria-hidden="true">💡</span>
+      <span class="emoji e-brain far" data-depth="10" aria-hidden="true">🧠</span>
+      <span class="emoji e-sparkle far" data-depth="8" aria-hidden="true">✨</span>
+      <span class="emoji e-sparkle2" data-depth="14" aria-hidden="true">✨</span>
+
+      <header class="nav-wrap">
+        <nav class="nav" aria-label="Main">
+          <a class="brand" href="#top" aria-label="Penny, back to top">
+            <span class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><use href="#i-pen"/></svg></span>
+            <span class="brand-name">Penny</span>
+          </a>
+          <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how">How it works</a></li>
+            <li><a href="#accounts">Accounts</a></li>
+            <li><a href="#chrome">Chrome</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+          <div class="nav-end">
+            <a class="btn btn-dark btn-sm" href="#download">Download</a>
+            <details class="nav-menu">
+              <summary aria-label="Open menu"><svg aria-hidden="true"><use href="#i-menu"/></svg></summary>
+              <ul class="menu-panel">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how">How it works</a></li>
+                <li><a href="#accounts">Accounts</a></li>
+                <li><a href="#chrome">Chrome</a></li>
+                <li><a href="#faq">FAQ</a></li>
+              </ul>
+            </details>
+          </div>
+        </nav>
+      </header>
+
+      <div class="hero-copy">
+        <h1 id="hero-title">Ask out loud<span class="pt">.</span><br><span class="hl">See it drawn<span class="pt">.</span><svg viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M6 26 C 70 14, 160 12, 294 20 M14 33 C 90 26, 190 25, 286 29"/></svg></span></h1>
+        <p class="hero-sub">Penny is an AI tutor that lives on your screen. Point at anything, ask a question, and it answers in a few spoken sentences while drawing diagrams, labels and 3D models right on top of what you're looking at.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-dark btn-badge" href="https://github.com/AshrafulKabir7/penny/releases/latest/download/Penny-Setup.exe">
+            <svg class="ico" aria-hidden="true"><use href="#i-windows"/></svg>
+            <span class="badge-text"><small>Download for</small> <strong>Windows</strong></span>
+          </a>
+          <a class="btn btn-light btn-badge" href="#chrome">
+            <svg class="ico" aria-hidden="true"><use href="#i-chrome"/></svg>
+            <span class="badge-text"><small>Add to</small> <strong>Chrome</strong></span>
+          </a>
+        </div>
+        <p class="hero-note"><span>Free and open source</span><span>Windows 10/11</span><span>Use your own Claude, ChatGPT or Gemini account</span></p>
+      </div>
+
+      <div class="hero-foot">
+        <a class="gh-badge" href="https://github.com/AshrafulKabir7/penny">
+          <span class="star" aria-hidden="true"><svg><use href="#i-star"/></svg></span>
+          <span class="gh-badge-text"><strong>Open source</strong> <span>on GitHub <span aria-hidden="true">›</span></span></span>
+        </a>
+        <a class="gh-icon" href="https://github.com/AshrafulKabir7/penny" aria-label="Penny on GitHub"><svg aria-hidden="true"><use href="#i-github"/></svg></a>
+      </div>
+
+      <div class="stage">
+        <div class="device">
+          <div class="screen">
+            <img src="assets/shots/engine.jpg" width="1442" height="817" fetchpriority="high"
+                 alt="Penny answering “How does a jet engine work?”: a glass 3D jet-engine cut-away with handwritten labels for the fan, compressor, combustion and turbine, drawn over a web page, with a spoken caption underneath.">
+            <svg class="screen-ink" viewBox="0 0 1442 817" aria-hidden="true">
+              <defs>
+                <filter id="pen-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#5a3a00" flood-opacity=".28"/></filter>
+              </defs>
+              <g opacity="0">
+                <animate attributeName="opacity" dur="9s" begin="0.8s" repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;0.05;0.84;0.92;1"/>
+                <path id="ink-loop" class="ink-loop" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"
+                      d="M1000 418 C1040 378 1140 376 1172 420 C1198 456 1170 512 1098 522 C1030 531 984 500 986 462 C988 430 1022 404 1068 398">
+                  <animate attributeName="stroke-dashoffset" dur="9s" begin="0.8s" repeatCount="indefinite" values="1;1;0;0" keyTimes="0;0.26;0.5;1"/>
+                </path>
+                <g>
+                  <animateTransform attributeName="transform" type="translate" dur="9s" begin="0.8s" repeatCount="indefinite"
+                                    values="330 342;0 0;0 0" keyTimes="0;0.24;1" calcMode="spline" keySplines="0.35 0 0.2 1;0 0 1 1"/>
+                  <g>
+                    <animateMotion dur="9s" begin="0.8s" repeatCount="indefinite" calcMode="linear" keyPoints="0;0;1;1" keyTimes="0;0.26;0.5;1">
+                      <mpath href="#ink-loop"/>
+                    </animateMotion>
+                    <g filter="url(#pen-shadow)" transform="scale(1.6) translate(-4 -3)">
+                      <path d="M4 3 L27 14 L16 17 L12 28 Z" fill="#ffd23f" stroke="#2d2b28" stroke-width="2" stroke-linejoin="round"/>
+                    </g>
+                  </g>
+                </g>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <div class="ask-bubble" aria-hidden="true">
+          <span class="ask-mic"><svg><use href="#i-mic"/></svg></span>
+          <span>How does a jet engine work?</span>
+        </div>
+
+        <!-- Floating facts (repeated in the Features section for screen readers) -->
+        <div class="float f-speed" data-depth="-22" style="--rot:-8deg" aria-hidden="true">
+          <div class="f-big">3.4 s</div>
+          <div class="f-sub">to first words</div>
+          <div class="wave">
+            <i style="--h:30%;--d:-.1s"></i><i style="--h:55%;--d:-.5s"></i><i style="--h:80%;--d:-.9s"></i><i style="--h:45%;--d:-.3s"></i><i style="--h:100%;--d:-1.2s"></i><i style="--h:70%;--d:-.7s"></i><i style="--h:40%;--d:-.2s"></i><i style="--h:88%;--d:-1s"></i><i style="--h:60%;--d:-.4s"></i><i style="--h:35%;--d:-1.4s"></i><i style="--h:75%;--d:-.6s"></i><i style="--h:50%;--d:-1.1s"></i><i style="--h:28%;--d:-.8s"></i><i style="--h:62%;--d:-1.3s"></i>
+          </div>
+        </div>
+
+        <div class="float f-3d" data-depth="18" style="--rot:7deg" aria-hidden="true">
+          <div class="thumb"><img src="assets/shots/newton.jpg" width="1442" height="817" alt=""></div>
+          <div class="f-title">Draws in 3D</div>
+          <div class="f-sub">Interactive scenes</div>
+        </div>
+
+        <div class="float f-circle" data-depth="-14" style="--rot:6deg" aria-hidden="true">
+          <div class="circle-demo">
+            <svg viewBox="0 0 150 60"><path d="M30 18 C55 2 118 4 132 22 C146 40 110 56 70 55 C30 54 10 42 16 28 C20 18 40 10 64 9" fill="none" stroke="#f5b700" stroke-width="4" stroke-linecap="round"/></svg>
+            <span>what is this?</span>
+          </div>
+          <div class="f-title">Circle it, ask it</div>
+        </div>
+
+        <div class="float f-accounts" data-depth="24" style="--rot:-6deg" aria-hidden="true">
+          <div class="f-title">Your own account</div>
+          <div class="chips"><span>Claude</span><span>ChatGPT</span><span>Gemini</span></div>
+        </div>
+
+        <div class="float f-voice" data-depth="-10" style="--rot:5deg" aria-hidden="true">
+          <span class="voice-ico"><svg><use href="#i-speaker"/></svg></span>
+          <span><span class="f-title">Speaks, with captions</span><span class="f-sub">Voice in, voice out</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main id="main">
+    <!-- ============================================================ FEATURES -->
+    <section class="section" id="features" aria-labelledby="features-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="eyebrow">No chat window</p>
+          <h2 id="features-title">It draws on your screen<span class="pt">,</span><br class="br-d"> not in a chat box</h2>
+          <p class="lead">Penny talks you through the answer and puts the pictures right where you're already looking: on the page, the diagram or the code in front of you.</p>
+        </div>
+
+        <div class="bento">
+          <article class="card feature reveal">
+            <div class="viz viz-page" aria-hidden="true">
+              <span class="ln" style="width:78%"></span><span class="ln" style="width:92%"></span><span class="ln ln-hl" style="width:64%"></span><span class="ln" style="width:85%"></span><span class="ln" style="width:56%"></span>
+              <svg class="viz-loop" viewBox="0 0 200 70"><path d="M24 30 C50 6 160 6 182 28 C200 50 150 66 96 64 C44 62 8 50 14 34 C18 22 44 14 80 12" fill="none" stroke="#f5b700" stroke-width="4.5" stroke-linecap="round"/></svg>
+              <span class="tag tag-blue">this line</span>
+            </div>
+            <h3>Draws on the real thing</h3>
+            <p>Hand-drawn loops, labels and highlights land on the actual content, so you see exactly which part it means.</p>
+          </article>
+
+          <article class="card feature reveal" style="--delay:.08s">
+            <div class="viz viz-paper" aria-hidden="true">
+              <div class="paper">
+                <div class="paper-title">Step by step</div>
+                <div class="paper-row"><span class="box box-blue">input</span><svg viewBox="0 0 60 16"><path d="M2 8h52M46 3l8 5-8 5" fill="none" stroke="#2d2b28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="box box-pink">answer</span></div>
+              </div>
+              <div class="sticky">Power off first</div>
+            </div>
+            <h3>Explainer cards and sticky notes</h3>
+            <p>Paper cards walk through the idea one step at a time, and sticky notes pin the bit you shouldn't miss.</p>
+          </article>
+
+          <article class="card feature reveal" style="--delay:.16s">
+            <div class="viz viz-cube" aria-hidden="true">
+              <svg viewBox="0 0 160 130" class="cube">
+                <path d="M80 14 128 40 80 66 32 40Z" fill="#fff3c4" stroke="#2d2b28" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M32 40 80 66v50L32 90Z" fill="#ffe27a" stroke="#2d2b28" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M128 40 80 66v50l48-26Z" fill="#ffd23f" stroke="#2d2b28" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M18 98c10 16 34 26 62 26s52-10 62-26" fill="none" stroke="#2d2b28" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 6"/>
+                <path d="M134 92l9 5 1-10" fill="none" stroke="#2d2b28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="hand-note">drag me</span>
+            </div>
+            <h3>Interactive 3D</h3>
+            <p>A glass jet-engine cut-away, skaters pushing off with force arrows, a Raspberry Pi with its camera cable going in. Drag them around.</p>
+          </article>
+
+          <article class="card feature reveal">
+            <div class="viz viz-voice" aria-hidden="true">
+              <div class="wave wave-lg">
+                <i style="--h:30%;--d:-.1s"></i><i style="--h:55%;--d:-.5s"></i><i style="--h:80%;--d:-.9s"></i><i style="--h:45%;--d:-.3s"></i><i style="--h:100%;--d:-1.2s"></i><i style="--h:70%;--d:-.7s"></i><i style="--h:40%;--d:-.2s"></i><i style="--h:88%;--d:-1s"></i><i style="--h:60%;--d:-.4s"></i><i style="--h:35%;--d:-1.4s"></i><i style="--h:75%;--d:-.6s"></i><i style="--h:50%;--d:-1.1s"></i><i style="--h:28%;--d:-.8s"></i><i style="--h:62%;--d:-1.3s"></i><i style="--h:44%;--d:-.35s"></i><i style="--h:82%;--d:-.95s"></i>
+              </div>
+              <div class="caption-pill">Thrust comes out of it all.</div>
+            </div>
+            <h3>Voice in, voice out</h3>
+            <p>Ask out loud or type. Penny answers in a few spoken sentences, with captions, and starts talking in about 3.4 seconds.<a class="fn-ref" href="#fn-speed" aria-describedby="fn-speed-label">*</a></p>
+          </article>
+
+          <article class="card feature reveal" style="--delay:.08s">
+            <div class="viz viz-trail" aria-hidden="true">
+              <span class="ln" style="width:70%"></span><span class="ln" style="width:88%"></span><span class="ln" style="width:60%"></span><span class="ln" style="width:80%"></span>
+              <svg class="trail" viewBox="0 0 220 110"><path d="M196 96 C170 92 150 70 132 62 C104 50 70 52 62 40 C54 28 82 14 116 18 C150 22 164 40 150 52 C136 64 96 66 76 58" fill="none" stroke="#ffd23f" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></svg>
+              <svg class="trail-pen" viewBox="0 0 32 32"><use href="#i-pen"/></svg>
+              <span class="say">what is this?</span>
+            </div>
+            <h3>Point at it, or circle it</h3>
+            <p>While Penny listens, a yellow ink trail follows your mouse. Circle something, or rest the pointer on it, and say “what is this?”</p>
+          </article>
+
+          <article class="card feature reveal" style="--delay:.16s">
+            <div class="viz viz-keys" aria-hidden="true">
+              <div class="chips chips-lg"><span>Claude</span><span>ChatGPT</span><span>Gemini</span><span>OpenAI</span><span>Command Code</span><span>Antigravity</span></div>
+            </div>
+            <h3>Your own AI account</h3>
+            <p>Penny ships with no account of its own. Bring your Claude, ChatGPT, Gemini or OpenAI account and pick the model you like.</p>
+          </article>
+        </div>
+        <p class="footnote" id="fn-speed"><span id="fn-speed-label">* Time to the first spoken words, measured with DeepSeek through Command Code. Other models and accounts vary.</span></p>
+      </div>
+    </section>
+
+    <!-- ============================================================ HOW IT WORKS -->
+    <section class="section section-tint" id="how" aria-labelledby="how-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="eyebrow">How it works</p>
+          <h2 id="how-title">Three steps<span class="pt">,</span> no typing needed</h2>
+          <p class="lead">Penny sits quietly in the system tray until you ask it something.</p>
+        </div>
+
+        <ol class="steps">
+          <li class="step card reveal">
+            <span class="num" aria-hidden="true">1</span>
+            <div class="viz viz-step1" aria-hidden="true">
+              <span class="keys"><kbd>Ctrl</kbd><span class="plus">+</span><kbd>Alt</kbd><span class="plus">+</span><kbd class="space">Space</kbd></span>
+            </div>
+            <h3>Hold Ctrl+Alt+Space and ask</h3>
+            <p>Hold the keys while you speak and let go to send. If another app has that shortcut, Penny picks another and shows it in its tray menu. Prefer typing? You can type the question instead.</p>
+          </li>
+          <li class="step card reveal" style="--delay:.1s">
+            <span class="num" aria-hidden="true">2</span>
+            <div class="viz viz-step2" aria-hidden="true">
+              <svg viewBox="0 0 220 90"><path d="M50 40 C70 14 150 12 170 34 C188 56 140 76 100 74 C60 72 34 60 40 46 C44 36 64 28 96 26" fill="none" stroke="#ffd23f" stroke-width="7" stroke-linecap="round" opacity=".9"/></svg>
+              <svg class="mini-pen" viewBox="0 0 32 32"><use href="#i-pen"/></svg>
+            </div>
+            <h3>Point at it, or circle it</h3>
+            <p>Circle the thing you mean, or rest the pointer on it. Penny sees your screen and the spot you picked.</p>
+          </li>
+          <li class="step card reveal" style="--delay:.2s">
+            <span class="num" aria-hidden="true">3</span>
+            <div class="viz viz-step3" aria-hidden="true">
+              <span class="tag tag-green">Turbine</span>
+              <span class="tag tag-yellow">Compressor</span>
+              <div class="caption-pill">Spinning on one shaft.</div>
+            </div>
+            <h3>Watch it draw and listen</h3>
+            <p>It answers in a few spoken sentences while loops, labels, cards and 3D models appear on top of your screen.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============================================================ SHOWCASE -->
+    <section class="section" id="showcase" aria-labelledby="showcase-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="eyebrow">Real answers, real screens</p>
+          <h2 id="showcase-title">Ask about anything you see</h2>
+          <p class="lead">Each of these is Penny answering a spoken question, captured straight from the screen.</p>
+        </div>
+
+        <div class="gallery">
+          <figure class="shot reveal">
+            <a href="assets/shots/engine.jpg" class="shot-img"><img src="assets/shots/engine.jpg" width="1442" height="817" loading="lazy" decoding="async" alt="A glass 3D jet-engine cut-away with labels for the fan, bypass air, compressor, combustion, turbine and hot gas, drawn over a web page."></a>
+            <figcaption>
+              <span class="q"><span class="q-mic" aria-hidden="true"><svg><use href="#i-mic"/></svg></span><span>“How does a jet engine work?”</span></span>
+              <span class="d">A glass jet-engine cut-away, labelled part by part.</span>
+            </figcaption>
+          </figure>
+          <figure class="shot reveal" style="--delay:.08s">
+            <a href="assets/shots/newton.jpg" class="shot-img"><img src="assets/shots/newton.jpg" width="1442" height="817" loading="lazy" decoding="async" alt="A 3D scene titled Newton's Third Law: two people on skateboards push off each other, with a force arrow and label on each."></a>
+            <figcaption>
+              <span class="q"><span class="q-mic" aria-hidden="true"><svg><use href="#i-mic"/></svg></span><span>“Show me Newton's third law in 3D”</span></span>
+              <span class="d">Two skaters push off, with a force arrow on each.</span>
+            </figcaption>
+          </figure>
+          <figure class="shot reveal">
+            <a href="assets/shots/tensor.jpg" class="shot-img"><img src="assets/shots/tensor.jpg" width="1442" height="817" loading="lazy" decoding="async" alt="A paper explainer card titled One slice, eight quizzes, next to a yellow loop and highlight drawn on the text it explains."></a>
+            <figcaption>
+              <span class="q"><span class="q-mic" aria-hidden="true"><svg><use href="#i-mic"/></svg></span><span>“How does this tensor become training data?”</span></span>
+              <span class="d">A paper explainer card, tied to loops and highlights on the page.</span>
+            </figcaption>
+          </figure>
+          <figure class="shot reveal" style="--delay:.08s">
+            <a href="assets/shots/pi.jpg" class="shot-img"><img src="assets/shots/pi.jpg" width="1442" height="817" loading="lazy" decoding="async" alt="A 3D Raspberry Pi with labels for the camera port and flip-up latch, a USB webcam, and a sticky note saying Power off first."></a>
+            <figcaption>
+              <span class="q"><span class="q-mic" aria-hidden="true"><svg><use href="#i-mic"/></svg></span><span>“How do I attach a camera to a Raspberry Pi?”</span></span>
+              <span class="d">A Raspberry Pi in 3D, the camera cable going in, and a sticky note.</span>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ ACCOUNTS -->
+    <section class="section section-tint" id="accounts" aria-labelledby="accounts-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="eyebrow">Bring your own account</p>
+          <h2 id="accounts-title">Use the AI you already have</h2>
+          <p class="lead">Penny has no account of its own. Connect one of these in the tray menu and press Use.</p>
+        </div>
+
+        <div class="accounts">
+          <article class="card acct reveal" style="--tint:#f6dccd">
+            <div class="acct-methods"><span>API key</span><span>Sign in</span></div>
+            <h3>Claude</h3>
+            <p>Paste an API key, or use <strong>Sign in with Claude</strong> for a Claude API (Console) account.</p>
+            <p class="acct-note">Claude Pro and Max chat subscriptions can't be used: Anthropic doesn't allow third-party apps to use them.</p>
+          </article>
+          <article class="card acct reveal" style="--delay:.06s;--tint:#d6efe4">
+            <div class="acct-methods"><span>Sign in</span></div>
+            <h3>ChatGPT</h3>
+            <p>Use <strong>Sign in with ChatGPT</strong>, which goes through OpenAI's Codex and uses your ChatGPT plan.</p>
+          </article>
+          <article class="card acct reveal" style="--delay:.12s;--tint:#dbe6fb">
+            <div class="acct-methods"><span>API key</span><span>Sign in</span></div>
+            <h3>Gemini <span class="slash">/</span> Google</h3>
+            <p>Paste a Gemini API key, or sign in with your Google account through Antigravity.</p>
+          </article>
+          <article class="card acct reveal" style="--delay:.18s;--tint:#ece4f7">
+            <div class="acct-methods"><span>API key</span><span>CLI</span></div>
+            <h3>OpenAI, Command Code, Antigravity</h3>
+            <p>Paste an OpenAI API key, or use the Command Code or Antigravity command-line tools with their own login.</p>
+          </article>
+        </div>
+
+        <div class="privacy card reveal">
+          <span class="privacy-ico" aria-hidden="true"><svg><use href="#i-lock"/></svg></span>
+          <div>
+            <h3>Your keys stay on your PC</h3>
+            <p>API keys are encrypted on your computer and never leave it, except to go to their own provider. You can test or remove a key at any time.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ CHROME -->
+    <section class="section" id="chrome" aria-labelledby="chrome-title">
+      <div class="container split">
+        <div class="split-copy reveal">
+          <p class="eyebrow">Penny for Chrome</p>
+          <h2 id="chrome-title">No desktop app? Use it in your browser</h2>
+          <p class="lead lead-left">Penny for Chrome works on any web page, with your own Claude, OpenAI or Gemini key. Press Alt+Shift+P, type or say your question, and the answer is drawn on the page. Nothing else to install.</p>
+
+          <ol class="install">
+            <li><span><a href="https://github.com/AshrafulKabir7/penny/releases/latest/download/penny-chrome.zip">Download penny-chrome.zip</a> and unzip it.</span></li>
+            <li><span>Open <code>chrome://extensions</code> in Chrome.</span></li>
+            <li><span>Turn on <strong>Developer mode</strong> (top right).</span></li>
+            <li><span>Click <strong>Load unpacked</strong> and choose the unzipped folder.</span></li>
+            <li><span>Add your API key on the settings page that opens, then click Penny&#8217;s toolbar button on any page.</span></li>
+          </ol>
+
+          <div class="btn-row">
+            <a class="btn btn-dark btn-md" href="https://github.com/AshrafulKabir7/penny/releases/latest/download/penny-chrome.zip">
+              <svg class="ico" aria-hidden="true"><use href="#i-download"/></svg> Download for Chrome
+            </a>
+            <span class="btn-hint">penny-chrome.zip</span>
+          </div>
+        </div>
+
+        <div class="browser-art reveal" style="--delay:.1s" aria-hidden="true">
+          <div class="browser">
+            <div class="browser-bar">
+              <span class="dots"><i></i><i></i><i></i></span>
+              <span class="url">any web page</span>
+              <span class="ext"><svg viewBox="0 0 32 32"><use href="#i-pen"/></svg></span>
+            </div>
+            <div class="browser-body">
+              <span class="ln ln-title"></span>
+              <span class="ln" style="width:92%"></span><span class="ln" style="width:84%"></span><span class="ln" style="width:88%"></span><span class="ln" style="width:52%"></span>
+              <span class="ln" style="width:90%;margin-top:22px"></span><span class="ln" style="width:76%"></span><span class="ln" style="width:82%"></span>
+              <svg class="browser-loop" viewBox="0 0 240 80"><path d="M28 34 C60 8 190 8 214 32 C234 56 176 74 116 72 C56 70 12 58 18 40 C22 26 54 18 96 16" fill="none" stroke="#f5b700" stroke-width="4.5" stroke-linecap="round"/></svg>
+              <span class="tag tag-blue browser-tag">key idea</span>
+              <div class="sticky browser-sticky">works on any page</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ DOWNLOAD -->
+    <section class="section" id="download" aria-labelledby="download-title">
+      <div class="container">
+        <div class="get reveal">
+          <div class="get-glow" aria-hidden="true"></div>
+          <div class="section-head get-head">
+            <p class="eyebrow eyebrow-dark">Free and open source</p>
+            <h2 id="download-title">Get Penny</h2>
+            <p class="lead">Pick the one that suits you. Both use your own AI account.</p>
+          </div>
+
+          <div class="get-grid">
+            <article class="get-card">
+              <span class="get-ico get-ico-dark" aria-hidden="true"><svg><use href="#i-windows"/></svg></span>
+              <h3>Windows app</h3>
+              <p>The full Penny: voice, pointing, drawing and 3D anywhere on your screen.</p>
+              <a class="btn btn-dark btn-md" href="https://github.com/AshrafulKabir7/penny/releases/latest/download/Penny-Setup.exe">
+                <svg class="ico" aria-hidden="true"><use href="#i-windows"/></svg> Download for Windows
+              </a>
+              <span class="get-meta">Penny-Setup.exe · Windows 10/11</span>
+            </article>
+            <article class="get-card">
+              <span class="get-ico" aria-hidden="true"><svg><use href="#i-chrome"/></svg></span>
+              <h3>Penny for Chrome</h3>
+              <p>Works on any web page with your own Claude, OpenAI or Gemini key.</p>
+              <a class="btn btn-light btn-md" href="https://github.com/AshrafulKabir7/penny/releases/latest/download/penny-chrome.zip">
+                <svg class="ico" aria-hidden="true"><use href="#i-download"/></svg> Download the zip
+              </a>
+              <span class="get-meta">penny-chrome.zip · <a href="#chrome">install steps</a></span>
+            </article>
+            <article class="get-card">
+              <span class="get-ico get-ico-dark" aria-hidden="true"><svg><use href="#i-github"/></svg></span>
+              <h3>Source code</h3>
+              <p>Read it, build it yourself, report a bug or send an improvement.</p>
+              <a class="btn btn-light btn-md" href="https://github.com/AshrafulKabir7/penny">
+                <svg class="ico" aria-hidden="true"><use href="#i-github"/></svg> View on GitHub
+              </a>
+              <span class="get-meta">github.com/AshrafulKabir7/penny</span>
+            </article>
+          </div>
+
+          <div class="get-notes">
+            <div class="note-box">
+              <h3>What you need</h3>
+              <ul class="checks">
+                <li>Windows 10 or 11</li>
+                <li>One AI account of your own (<a href="#accounts">see Accounts</a>)</li>
+                <li>For voice input: Python with Whisper.<br><code class="cmd">py -m pip install -U openai-whisper edge-tts</code><br><span class="small">Without it, typed questions and the Windows voice still work.</span></li>
+              </ul>
+            </div>
+            <div class="note-box note-warn">
+              <h3><svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg> Windows may warn you</h3>
+              <p>The installer is unsigned, so Windows SmartScreen may show a warning. Click <strong>More info</strong>, then <strong>Run anyway</strong>.</p>
+              <p class="small">Prefer to check first? The full source is on GitHub.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ FAQ -->
+    <section class="section" id="faq" aria-labelledby="faq-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="eyebrow">FAQ</p>
+          <h2 id="faq-title">Questions<span class="pt">,</span> answered</h2>
+        </div>
+        <div class="faq reveal">
+          <details>
+            <summary>Is it free?<span class="faq-ico" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+            <div class="answer"><p>Yes. Penny is free and open source. The AI comes from your own account, so any usage is billed by that provider, the same as using it anywhere else.</p></div>
+          </details>
+          <details>
+            <summary>Which AI models can it use?<span class="faq-ico" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+            <div class="answer"><p>Claude (with an API key or Sign in with Claude for a Claude API account), ChatGPT (Sign in with ChatGPT, through OpenAI's Codex), Gemini (an API key, or your Google account through Antigravity), OpenAI with an API key, and the models offered by the Command Code and Antigravity command-line tools. The model has to be able to read a screenshot.</p></div>
+          </details>
+          <details>
+            <summary>What leaves my computer?<span class="faq-ico" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+            <div class="answer"><p>When you ask, the screenshot and your question go to the model you chose. Spoken answers go to Microsoft's voice service unless you pick the Windows voice. Speech recognition runs locally on your PC.</p></div>
+          </details>
+          <details>
+            <summary>Why can't I use my Claude Pro subscription?<span class="faq-ico" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+            <div class="answer"><p>Anthropic doesn't allow third-party apps to use Claude Pro or Max chat subscriptions. Use a Claude API key, or Sign in with Claude for a Claude API (Console) account, instead.</p></div>
+          </details>
+          <details>
+            <summary>Does it work on Mac?<span class="faq-ico" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+            <div class="answer"><p>Not yet. The desktop app is for Windows 10 and 11. Penny for Chrome doesn't need the desktop app.</p></div>
+          </details>
+          <details>
+            <summary>Do I need Python?<span class="faq-ico" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+            <div class="answer"><p>Only for voice input. Install it with <code>py -m pip install -U openai-whisper edge-tts</code>. Without it, you can still type your questions and hear answers in the Windows voice.</p></div>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a class="brand" href="#top" aria-label="Penny, back to top">
+          <span class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><use href="#i-pen"/></svg></span>
+          <span class="brand-name">Penny</span>
+        </a>
+        <p class="made">Made with Penny's yellow pen</p>
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="#features">Features</a>
+        <a href="#accounts">Accounts</a>
+        <a href="#chrome">Chrome</a>
+        <a href="#download">Download</a>
+        <a href="#faq">FAQ</a>
+        <a class="footer-gh" href="https://github.com/AshrafulKabir7/penny"><svg class="ico" aria-hidden="true"><use href="#i-github"/></svg> GitHub</a>
+      </nav>
+      <p class="copy">© <span data-year>2026</span> Penny contributors. Free and open source.</p>
+    </div>
+  </footer>
+
+  <script src="script.js" defer></script>
+</body>
+</html>

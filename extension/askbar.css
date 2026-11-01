@@ -1,0 +1,89 @@
+/* The extension's ask bar, in the style of the desktop app's. */
+
+:root {
+  color-scheme: light; /* matches the frame's (content.js), so the page shows through */
+}
+
+.askbar {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(640px, calc(100vw - 32px));
+  height: 52px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 8px 0 18px;
+  border-radius: 26px;
+  background: rgba(14, 14, 16, 0.94);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  font: 16px var(--ui);
+  transform: translate(-50%, 140px);
+  opacity: 0;
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1.15),
+    opacity 200ms;
+  pointer-events: none;
+}
+.askbar.on {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.askbar .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffd23f;
+  flex: none;
+}
+.askbar.listening .dot {
+  background: #ff5d5d;
+  animation: pulse 1.2s infinite;
+}
+.askbar input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f4f1ea;
+  font: inherit;
+  user-select: text;
+}
+.askbar input::placeholder {
+  color: #8d8a84;
+}
+.askbar button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #b9b5ad;
+  cursor: pointer;
+}
+.askbar button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f4f1ea;
+}
+.askbar.listening .mic {
+  background: #ff5d5d;
+  color: #fff;
+}
+.askbar kbd {
+  margin-right: 8px;
+  color: #8d8a84;
+  font: 12px var(--ui);
+}
+@media (max-width: 520px) {
+  .askbar kbd {
+    display: none;
+  }
+}

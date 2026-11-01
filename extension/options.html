@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Penny settings</title>
+    <link rel="stylesheet" href="fonts/400.css" />
+    <link rel="stylesheet" href="fonts/700.css" />
+    <style>
+      :root {
+        --bg: #f6f3ec;
+        --card: #fffdf8;
+        --ink: #1b1a17;
+        --muted: #6f6a60;
+        --line: #e6e0d4;
+        --yellow: #ffd23f;
+        --ok: #1f8a4c;
+        --bad: #c4372b;
+        --hand: "Kalam", "Segoe Print", cursive;
+        --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 15px/1.5 var(--ui);
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 40px 20px 80px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+      }
+      header img {
+        width: 44px;
+        height: 44px;
+      }
+      h1 {
+        margin: 0;
+        font: 700 34px/1.1 var(--hand);
+      }
+      .lede {
+        margin: 0 0 28px;
+        color: var(--muted);
+      }
+      section {
+        margin: 0 0 18px;
+        padding: 22px 24px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--card);
+      }
+      h2 {
+        margin: 0 0 4px;
+        font-size: 17px;
+      }
+      .hint {
+        margin: 0 0 16px;
+        color: var(--muted);
+        font-size: 13.5px;
+      }
+      .providers {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .providers label {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 12px 14px;
+        border: 1.5px solid var(--line);
+        border-radius: 14px;
+        cursor: pointer;
+      }
+      .providers label:has(input:checked) {
+        border-color: var(--ink);
+        box-shadow: inset 0 0 0 1px var(--ink);
+      }
+      .providers input {
+        position: absolute;
+        opacity: 0;
+      }
+      .providers b {
+        font-size: 15px;
+      }
+      .providers small {
+        color: var(--muted);
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin: 10px 0;
+      }
+      .row > span:first-child {
+        min-width: 120px;
+        font-weight: 600;
+      }
+      input[type="text"],
+      input[type="password"],
+      select {
+        flex: 1;
+        min-width: 200px;
+        height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+        color: var(--ink);
+        font: 14px var(--ui);
+      }
+      button {
+        height: 40px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 20px;
+        background: var(--ink);
+        color: #fff;
+        font: 600 14px var(--ui);
+        cursor: pointer;
+      }
+      button.ghost {
+        background: transparent;
+        color: var(--ink);
+        box-shadow: inset 0 0 0 1px var(--line);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .key {
+        padding: 14px 0;
+        border-top: 1px solid var(--line);
+      }
+      .key:first-of-type {
+        border-top: 0;
+      }
+      .key h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 2px;
+        font-size: 15px;
+      }
+      .key .state {
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .key .state.saved::before {
+        content: "●";
+        margin-right: 5px;
+        color: var(--ok);
+      }
+      .key a {
+        color: var(--ink);
+        font-size: 13.5px;
+      }
+      .result {
+        min-height: 20px;
+        font-size: 13.5px;
+      }
+      .result.ok {
+        color: var(--ok);
+      }
+      .result.bad {
+        color: var(--bad);
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 8px 0;
+      }
+      kbd {
+        padding: 3px 8px;
+        border: 1px solid var(--line);
+        border-bottom-width: 2px;
+        border-radius: 8px;
+        background: #fff;
+        font: 600 13px var(--ui);
+      }
+      .privacy {
+        border-style: dashed;
+        background: transparent;
+      }
+      @media (max-width: 560px) {
+        .providers {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <img src="icons/128.png" alt="" />
+        <h1>Penny settings</h1>
+      </header>
+      <p class="lede">Penny answers questions about the page you're on by drawing on it. It runs on your own AI account, and you pay the provider directly.</p>
+
+      <section>
+        <h2>Model</h2>
+        <p class="hint">Which AI answers your questions. You need an API key for it (below).</p>
+        <div class="providers">
+          <label><input type="radio" name="provider" value="claude" /><b>Claude</b><small>Anthropic API</small></label>
+          <label><input type="radio" name="provider" value="openai" /><b>OpenAI</b><small>OpenAI API</small></label>
+          <label><input type="radio" name="provider" value="gemini" /><b>Gemini</b><small>Google AI Studio</small></label>
+        </div>
+        <div class="row">
+          <span>Model</span>
+          <input type="text" id="model" list="models" spellcheck="false" />
+          <datalist id="models"></datalist>
+        </div>
+        <div class="row">
+          <span>Thinking</span>
+          <select id="effort">
+            <option value="off">Quick (answers start fastest)</option>
+            <option value="low">Low</option>
+            <option value="default">Normal</option>
+            <option value="high">Deep (slower)</option>
+          </select>
+        </div>
+      </section>
+
+      <section>
+        <h2>Your API keys</h2>
+        <p class="hint">Keys are stored only in this browser (not synced) and sent only to their own provider.</p>
+        <div class="key" data-key="anthropic" data-provider="claude">
+          <h3>Claude API key <span class="state"></span></h3>
+          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">Get a key from the Claude Console</a>
+          <div class="row">
+            <input type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…" />
+            <button class="save">Save</button>
+            <button class="ghost test">Test</button>
+            <button class="ghost remove">Remove</button>
+          </div>
+          <div class="result"></div>
+        </div>
+        <div class="key" data-key="openai" data-provider="openai">
+          <h3>OpenAI API key <span class="state"></span></h3>
+          <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">Get a key from the OpenAI platform</a>
+          <div class="row">
+            <input type="password" autocomplete="off" spellcheck="false" placeholder="sk-…" />
+            <button class="save">Save</button>
+            <button class="ghost test">Test</button>
+            <button class="ghost remove">Remove</button>
+          </div>
+          <div class="result"></div>
+        </div>
+        <div class="key" data-key="google" data-provider="gemini">
+          <h3>Gemini API key <span class="state"></span></h3>
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Get a key from Google AI Studio</a>
+          <div class="row">
+            <input type="password" autocomplete="off" spellcheck="false" placeholder="AIza…" />
+            <button class="save">Save</button>
+            <button class="ghost test">Test</button>
+            <button class="ghost remove">Remove</button>
+          </div>
+          <div class="result"></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Answers</h2>
+        <label class="check"><input type="checkbox" id="speak" /> Speak answers out loud</label>
+        <label class="check"><input type="checkbox" id="captions" /> Show captions of what Penny says</label>
+      </section>
+
+      <section>
+        <h2>How to ask</h2>
+        <p class="hint" style="margin-bottom: 8px">
+          Press <kbd id="shortcut">Alt+Shift+P</kbd> or click Penny's toolbar button, then type your question, or press the mic and talk. Say "this" while pointing with the mouse, or circle
+          something as you talk. <kbd>Esc</kbd> clears the drawings.
+        </p>
+        <button class="ghost" id="shortcuts">Change the shortcut</button>
+      </section>
+
+      <section class="privacy">
+        <h2>Privacy</h2>
+        <p class="hint" style="margin: 0">
+          Penny only looks at a page when you ask it something there. Then it sends a screenshot of the visible part of that tab, its title and your question to the provider you chose, and
+          nothing anywhere else. Penny has no server and no analytics.
+        </p>
+      </section>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

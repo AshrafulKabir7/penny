@@ -14,8 +14,9 @@ const EFFORT = { off: "low", low: "low", default: "medium", high: "high" };
 const WITH_FALLBACK = new Set(["claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5", "claude-fable-5-1"]);
 
 class ClaudeApiProvider {
-  constructor({ model, getKey, log = () => {} }) {
+  constructor({ model, getKey, log = () => {}, clientOptions = {} }) {
     this.kind = "claude";
+    this.clientOptions = clientOptions; // e.g. { dangerouslyAllowBrowser: true } in the Chrome extension
     this.model = model;
     this.getKey = getKey;
     this.log = log;
@@ -39,7 +40,7 @@ class ClaudeApiProvider {
 
   async ask({ question, shot, visualsOnScreen, onDelta }) {
     const key = this.getKey?.();
-    const client = key ? new Anthropic({ apiKey: key }) : new Anthropic();
+    const client = key ? new Anthropic({ apiKey: key, ...this.clientOptions }) : new Anthropic(this.clientOptions);
     const firstTurn = this.history.length === 0;
     if (firstTurn) this.system = sceneLanguage(shot.imageWidth, shot.imageHeight);
     const closeupRef = shot.closeup ? "the second attached image" : null;
@@ -114,8 +115,8 @@ class ClaudeApiProvider {
 }
 
 /** A one-line request that proves the key works (Accounts → Test). */
-async function testClaudeKey(key, model) {
-  const client = new Anthropic({ apiKey: key });
+async function testClaudeKey(key, model, clientOptions = {}) {
+  const client = new Anthropic({ apiKey: key, ...clientOptions });
   const res = await client.messages.create({
     model,
     max_tokens: 1024, // room for the brief thinking current models always do

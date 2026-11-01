@@ -247,7 +247,7 @@ function demoApi() {
     clear.textContent = "clear";
     clear.onclick = () => handlers["stage:clear"]?.();
     bar.appendChild(clear);
-    document.body.appendChild(bar);
+    if (!params.get("nobar")) document.body.appendChild(bar); // nobar: clean shots (tools/capture-shots.cjs)
     const auto = params.get("play");
     if (auto) bar.querySelector(`button:nth-child(${demos.indexOf(auto) + 1})`)?.click();
   });

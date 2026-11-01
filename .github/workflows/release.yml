@@ -1,0 +1,53 @@
+# Pushing a version tag (v0.1.0, ...) builds the Windows installer and the Chrome extension and publishes them as a
+# GitHub release. The website's download buttons point at the latest release's files.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Secret scan
+        run: node tools/check-secrets.mjs
+
+      - name: Chrome extension
+        run: npm run build:extension
+
+      - name: Windows installer
+        run: npm run dist
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/Penny-Setup.exe dist/Penny-Setup.exe.blockmap dist/latest.yml dist/penny-chrome.zip \
+            --title "Penny ${GITHUB_REF_NAME#v}" --generate-notes
+
+      - name: Keep the build (manual runs)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: penny
+          path: |
+            dist/Penny-Setup.exe
+            dist/penny-chrome.zip

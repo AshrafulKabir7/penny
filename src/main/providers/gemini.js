@@ -8,8 +8,9 @@ const { sceneLanguage, buildTurn } = require("../prompt");
 const LEVEL = { off: "LOW", low: "LOW", default: "MEDIUM", high: "HIGH" };
 
 class GeminiApiProvider {
-  constructor({ model, getKey, log = () => {} }) {
+  constructor({ model, getKey, log = () => {}, clientOptions = {} }) {
     this.kind = "gemini";
+    this.clientOptions = clientOptions;
     this.model = model;
     this.getKey = getKey;
     this.log = log;
@@ -35,9 +36,10 @@ class GeminiApiProvider {
   }
 
   _client() {
-    const key = this.getKey?.() || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    const env = globalThis.process?.env ?? {};
+    const key = this.getKey?.() || env.GEMINI_API_KEY || env.GOOGLE_API_KEY;
     if (!key) throw Object.assign(new Error("Add your Gemini API key in Accounts (tray menu), or sign in with Google there."), { needsKey: true });
-    return new GoogleGenAI({ apiKey: key });
+    return new GoogleGenAI({ apiKey: key, ...this.clientOptions });
   }
 
   async ask({ question, shot, visualsOnScreen, onDelta }) {
@@ -122,8 +124,8 @@ class GeminiApiProvider {
 }
 
 /** A one-line request that proves the key works (Accounts → Test). */
-async function testGeminiKey(key, model) {
-  const ai = new GoogleGenAI({ apiKey: key });
+async function testGeminiKey(key, model, clientOptions = {}) {
+  const ai = new GoogleGenAI({ apiKey: key, ...clientOptions });
   const res = await ai.models.generateContent({ model, contents: "Reply with: ok" });
   return res.text || "ok";
 }

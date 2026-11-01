@@ -7,8 +7,9 @@ const { sceneLanguage, buildTurn } = require("../prompt");
 const EFFORT = { off: "low", low: "low", default: "medium", high: "high" };
 
 class OpenAiApiProvider {
-  constructor({ model, getKey, log = () => {} }) {
+  constructor({ model, getKey, log = () => {}, clientOptions = {} }) {
     this.kind = "openai";
+    this.clientOptions = clientOptions;
     this.model = model;
     this.getKey = getKey;
     this.log = log;
@@ -33,9 +34,9 @@ class OpenAiApiProvider {
   }
 
   _client() {
-    const key = this.getKey?.() || process.env.OPENAI_API_KEY;
+    const key = this.getKey?.() || globalThis.process?.env?.OPENAI_API_KEY;
     if (!key) throw Object.assign(new Error("Add your OpenAI API key in Accounts (tray menu) to use OpenAI models."), { needsKey: true });
-    return new OpenAI({ apiKey: key });
+    return new OpenAI({ apiKey: key, ...this.clientOptions });
   }
 
   async ask({ question, shot, visualsOnScreen, onDelta }) {
@@ -120,8 +121,8 @@ class OpenAiApiProvider {
 }
 
 /** A one-line request that proves the key works (Accounts → Test). */
-async function testOpenAiKey(key, model) {
-  const client = new OpenAI({ apiKey: key });
+async function testOpenAiKey(key, model, clientOptions = {}) {
+  const client = new OpenAI({ apiKey: key, ...clientOptions });
   const res = await client.responses.create({ model, input: "Reply with: ok" });
   return res.output_text || "ok";
 }

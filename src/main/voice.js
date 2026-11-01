@@ -2,11 +2,12 @@
 
 const { spawn } = require("node:child_process");
 const { mkdirSync, readdirSync, rmSync, writeFileSync } = require("node:fs");
-const { join } = require("node:path");
+const { join, sep } = require("node:path");
 const { tmpdir } = require("node:os");
 const { pathToFileURL } = require("node:url");
 
-const SCRIPT = join(__dirname, "..", "..", "voice", "penny_voice.py");
+// In the installed app the source sits inside app.asar, which Python can't read; the voice folder is unpacked beside it.
+const SCRIPT = join(__dirname, "..", "..", "voice", "penny_voice.py").replace(`app.asar${sep}`, `app.asar.unpacked${sep}`);
 
 class VoiceWorker {
   constructor({ log = () => {}, python, whisperModel = "base" }) {
