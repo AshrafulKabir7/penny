@@ -7,7 +7,13 @@ const { join } = require("node:path");
 const settings = require("./settings");
 const { captureScreen, activeDisplay, markPointer } = require("./capture");
 const { PointerTracker, POINTING, toImage, gestureOnShot } = require("./pointer");
-const { createProvider, discoverModels, SUGGESTED, parseModelId } = require("./providers");
+const { createProvider, discoverModels, SUGGESTED, OWN_ACCOUNTS, parseModelId } = require("./providers");
+const credentials = require("./credentials");
+const { testClaudeKey } = require("./providers/anthropic");
+const { testOpenAiKey } = require("./providers/openai");
+const { codexStatus, codexLogin } = require("./providers/codex");
+const { testGeminiKey } = require("./providers/gemini");
+const { claudeSignInStatus, claudeSignIn, googleAccountStatus, googleSignIn } = require("./signin");
 const { VoiceWorker } = require("./voice");
 const { trayIconPng } = require("./icon");
 
@@ -137,12 +143,40 @@ function createAskWindow() {
   askWin.on("closed", () => (askWin = null));
 }
 
+let accountsWin = null;
+
+function openAccounts({ inactive = false } = {}) {
+  if (accountsWin && !accountsWin.isDestroyed()) {
+    if (inactive) accountsWin.showInactive();
+    else {
+      accountsWin.show();
+      accountsWin.focus();
+    }
+    return;
+  }
+  accountsWin = new BrowserWindow({
+    width: 560,
+    height: 760,
+    title: "Penny · Accounts",
+    backgroundColor: "#141416",
+    autoHideMenuBar: true,
+    resizable: true,
+    minimizable: false,
+    maximizable: false,
+    show: false,
+    webPreferences: { preload: join(__dirname, "..", "preload", "accounts.js"), contextIsolation: true },
+  });
+  accountsWin.loadFile(join(__dirname, "..", "renderer", "accounts.html"));
+  accountsWin.once("ready-to-show", () => (inactive ? accountsWin.showInactive() : accountsWin.show()));
+  accountsWin.on("closed", () => (accountsWin = null));
+}
+
 // ---------------------------------------------------------------- model
 
 function startProvider() {
   provider?.dispose();
   const parsed = parseModelId(cfg.model);
-  provider = createProvider(cfg.model, log);
+  provider = createProvider(cfg.model, log, { getKey: credentials.getKey });
   if (provider.effort !== undefined) provider.effort = cfg.effort;
   log(`[model] ${provider.label}`);
   const started = Date.now();
@@ -159,6 +193,8 @@ function startProvider() {
 
 function friendlyError(err, parsed = parseModelId(cfg.model)) {
   const m = String(err?.message || err);
+  // The API-key and ChatGPT providers already explain their own errors.
+  if (err?.needsKey || ["claude", "openai", "codex"].includes(parsed?.kind)) return m.length > 180 ? `${m.slice(0, 180)}…` : m;
   const cli = parsed?.kind === "agy" ? "Antigravity" : "Command Code";
   if (/MODEL_NOT_IN_PLAN|not in (your )?plan/i.test(m)) return `${parsed?.model} is not on your ${cli} plan. Pick another model in the tray menu.`;
   if (/ENOENT|not recognized|cannot find/i.test(m)) return `${cli} CLI not found. Install it and sign in, then restart Penny.`;
@@ -210,6 +246,7 @@ async function ask(question, shotPromise, pointedAt = null, gesture = null) {
     if (err.cancelled || id !== askSeq) return;
     log(`[ask] failed: ${err.message}`);
     send("answer:error", { message: friendlyError(err) });
+    if (err.needsKey) openAccounts(); // missing or rejected key: show where to fix it
     answering = false;
     setWake(true);
   } finally {
@@ -449,6 +486,7 @@ function change(patch) {
   const before = cfg;
   cfg = settings.update(patch);
   if (patch.model && patch.model !== before.model) startProvider();
+  if (accountsWin && !accountsWin.isDestroyed()) accountsWin.webContents.send("accounts:changed");
   if (patch.effort && provider?.effort !== undefined) {
     provider.effort = cfg.effort;
     provider.newTopic();
@@ -467,6 +505,27 @@ function buildTray() {
   }
   tray.setToolTip(`Penny · ${hotkeyLabel(keys.talk)} to talk · ${hotkeyLabel(keys.type)} to type`);
   const modelItem = (m) => ({ label: m.name || m.id, type: "radio", checked: cfg.model === m.id, click: () => change({ model: m.id }) });
+  // Own-account models that are not set up yet say so, and picking one opens Accounts.
+  const ownItem = (m) => {
+    const ready =
+      m.needs === "codex" || m.needs === "google-account"
+        ? true
+        : !!credentials.hint(m.needs) || (m.needs === "anthropic" && claudeSignInStatus() === "signed-in");
+    return {
+      label: ready ? m.name : `${m.name}  · set up in Accounts`,
+      type: "radio",
+      checked: cfg.model === m.id,
+      click: () => {
+        change({ model: m.id });
+        if (!ready) openAccounts();
+      },
+    };
+  };
+  const custom = !OWN_ACCOUNTS.some((m) => m.id === cfg.model);
+  const openaiCurrent = [
+    ...(custom && cfg.model.startsWith("openai:") ? [modelItem({ id: cfg.model, name: `${cfg.model.slice(7)} (your OpenAI API key)` })] : []),
+    ...(custom && cfg.model.startsWith("gemini:") ? [modelItem({ id: cfg.model, name: `${cfg.model.slice(7)} (your Gemini API key)` })] : []),
+  ];
   const known = new Set(SUGGESTED.map((m) => m.id));
   const more = extraModels.filter((id) => !known.has(id));
   const menu = Menu.buildFromTemplate([
@@ -477,6 +536,11 @@ function buildTray() {
     {
       label: "Model",
       submenu: [
+        { label: "Your own accounts", enabled: false },
+        ...OWN_ACCOUNTS.map(ownItem),
+        ...openaiCurrent,
+        { type: "separator" },
+        { label: "Command Code and Antigravity (their own sign-in)", enabled: false },
         ...SUGGESTED.map(modelItem),
         ...(more.length
           ? [
@@ -493,6 +557,7 @@ function buildTray() {
         { label: "Restart the model", click: startProvider },
       ],
     },
+    { label: "Accounts and API keys…", click: openAccounts },
     {
       label: "Voice",
       submenu: [
@@ -537,6 +602,127 @@ function wireIpc() {
     ask(text, pendingShot || shoot(), pointerAt);
   });
   ipcMain.on("ask:hide", () => askWin?.hide());
+  wireAccountsIpc();
+}
+
+// ---------------------------------------------------------------- Accounts window (keys go in, masked hints come out)
+
+const KEY_LINKS = ["https://console.anthropic.com/", "https://platform.openai.com/", "https://aistudio.google.com/", "https://github.com/anthropics/anthropic-cli/"];
+const KEY_KIND = { anthropic: "claude", openai: "openai", google: "gemini" };
+
+// Asking Antigravity whether it is signed in takes a few seconds, so the answer is cached and refreshed in the background.
+let googleState = "checking";
+let googleCheck = null;
+function refreshGoogleState() {
+  googleCheck ??= googleAccountStatus().then((state) => {
+    googleCheck = null;
+    if (state !== googleState) {
+      googleState = state;
+      accountsWin?.webContents.send("accounts:changed");
+    }
+  });
+  return googleCheck;
+}
+
+async function accountsState() {
+  const all = [...OWN_ACCOUNTS, ...SUGGESTED];
+  const named = all.find((m) => m.id === cfg.model);
+  return {
+    keys: { anthropic: credentials.hint("anthropic"), openai: credentials.hint("openai"), google: credentials.hint("google") },
+    codex: await codexStatus(),
+    claude: claudeSignInStatus(),
+    google: (refreshGoogleState(), googleState),
+    geminiModel: cfg.geminiModel,
+    model: cfg.model,
+    modelName: named?.name || cfg.model,
+    openaiModel: cfg.openaiModel,
+  };
+}
+
+function wireAccountsIpc() {
+  ipcMain.handle("accounts:state", () => accountsState());
+  ipcMain.handle("accounts:save-key", async (_e, provider, key) => {
+    try {
+      credentials.setKey(provider, key);
+      log(`[accounts] ${provider} key saved`); // never the key itself
+      if (parseModelId(cfg.model)?.kind === KEY_KIND[provider]) startProvider();
+      buildTray();
+      return { state: await accountsState() };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
+  ipcMain.handle("accounts:remove-key", async (_e, provider) => {
+    credentials.removeKey(provider);
+    log(`[accounts] ${provider} key removed`);
+    buildTray();
+    return accountsState();
+  });
+  ipcMain.handle("accounts:test", async (_e, provider) => {
+    const key = credentials.getKey(provider);
+    if (!key) return { ok: false, error: "No key saved yet." };
+    try {
+      if (provider === "anthropic") {
+        const current = parseModelId(cfg.model);
+        await testClaudeKey(key, current?.kind === "claude" ? current.model : "claude-opus-5-5");
+      } else if (provider === "google") {
+        await testGeminiKey(key, cfg.geminiModel);
+      } else {
+        await testOpenAiKey(key, cfg.openaiModel);
+      }
+      return { ok: true };
+    } catch (err) {
+      const plain = {
+        401: "This key was rejected. Check that it was copied whole, or create a new one.",
+        403: "This key works but isn't allowed to use that model.",
+        404: "That model isn't available to this account.",
+        429: "The account is rate-limited or out of credit.",
+      }[/API_KEY_INVALID|API key not valid|invalid.*api.?key/i.test(err.message) ? 401 : err.status];
+      return { ok: false, error: plain || String(err.message).slice(0, 200) };
+    }
+  });
+  ipcMain.handle("accounts:codex-login", async () => {
+    try {
+      await codexLogin();
+      return { state: await accountsState() };
+    } catch (err) {
+      return { error: err.message, state: await accountsState() };
+    }
+  });
+  ipcMain.handle("accounts:use", async (_e, modelId) => {
+    const parsed = parseModelId(modelId);
+    if (!parsed) return { error: "That model name isn't valid." };
+    change({
+      model: modelId,
+      ...(parsed.kind === "openai" ? { openaiModel: parsed.model } : {}),
+      ...(parsed.kind === "gemini" ? { geminiModel: parsed.model } : {}),
+    });
+    return { state: await accountsState() };
+  });
+  ipcMain.handle("accounts:claude-login", async () => {
+    try {
+      await claudeSignIn();
+      if (parseModelId(cfg.model)?.kind === "claude") startProvider();
+      buildTray();
+      return { state: await accountsState() };
+    } catch (err) {
+      return { error: err.message, install: err.install, state: await accountsState() };
+    }
+  });
+  ipcMain.handle("accounts:google-login", async () => {
+    try {
+      await googleSignIn();
+      // Check again in a while: the user signs in in the Antigravity window.
+      setTimeout(refreshGoogleState, 30_000);
+      setTimeout(refreshGoogleState, 90_000);
+      return {};
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
+  ipcMain.on("accounts:open", (_e, url) => {
+    if (KEY_LINKS.some((prefix) => String(url).startsWith(prefix))) shell.openExternal(url);
+  });
 }
 
 // ---------------------------------------------------------------- local control server (for testing and automation)
@@ -587,6 +773,27 @@ function startDevServer() {
       if (req.method === "GET" && url.pathname === "/snap") {
         const shot = await captureScreen({ full: true, format: "png" });
         return res.writeHead(200, { "content-type": "image/png" }).end(shot.png);
+      }
+      if (req.method === "POST" && url.pathname === "/accounts") {
+        openAccounts({ inactive: true }); // testing: don't take focus from what the user is doing
+        return json(200, { ok: true });
+      }
+      if (req.method === "GET" && url.pathname === "/accounts/text") {
+        if (!accountsWin) return json(400, { error: "Accounts is closed" });
+        const text = await accountsWin.webContents.executeJavaScript("document.body.innerText");
+        return res.writeHead(200, { "content-type": "text/plain; charset=utf-8" }).end(text);
+      }
+      if (req.method === "GET" && url.pathname === "/accounts/snap") {
+        if (!accountsWin) return json(400, { error: "Accounts is closed" });
+        const image = await accountsWin.webContents.capturePage();
+        return res.writeHead(200, { "content-type": "image/png" }).end(image.toPNG());
+      }
+      if (req.method === "POST" && url.pathname === "/accounts/call") {
+        // Runs one of the Accounts window's own calls, as its buttons do (testing only).
+        const { fn, args = [] } = JSON.parse(body.toString() || "{}");
+        if (!/^(state|saveKey|removeKey|test|use)$/.test(fn) || !accountsWin) return json(400, { error: "no such call, or Accounts is closed" });
+        const result = await accountsWin.webContents.executeJavaScript(`window.accounts.${fn}(...${JSON.stringify(args)})`);
+        return json(200, result ?? {});
       }
       if (req.method === "GET" && url.pathname === "/overlay") {
         const state = await overlay.webContents.executeJavaScript(

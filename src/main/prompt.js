@@ -137,16 +137,17 @@ function pointerFacts(shot, closeupRef) {
 
 /**
  * Builds the text of one turn. `imageRef` is how the model gets the screenshot: "inline" (attached to this message)
- * or a file name in the working folder that it must open first.
+ * or a file name in the working folder that it must open first. `separateSystem` is for APIs that take the scene
+ * language as a system prompt, so the first turn does not repeat it.
  */
-function buildTurn({ question, shot, imageRef, closeupRef, firstTurn, visualsOnScreen }) {
+function buildTurn({ question, shot, imageRef, closeupRef, firstTurn, visualsOnScreen, separateSystem = false }) {
   const look =
     imageRef === "inline"
       ? "The attached image is the screenshot."
       : `The screenshot is the file ${imageRef} in the current folder. Open it first and look at it carefully; it is what the user sees.`;
   const parts = [];
-  if (firstTurn) parts.push(sceneLanguage(shot.imageWidth, shot.imageHeight), "");
-  else
+  if (firstTurn && !separateSystem) parts.push(sceneLanguage(shot.imageWidth, shot.imageHeight), "");
+  else if (!firstTurn)
     parts.push(
       "New turn, same rules: reply only in JSONL scene ops." +
         (visualsOnScreen

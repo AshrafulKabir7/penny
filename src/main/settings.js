@@ -19,6 +19,8 @@ const DEFAULTS = {
   hideFromCapture: false,
   whisperModel: "base",
   python: "",
+  openaiModel: "gpt-6.1-terra", // the model used with the user's own OpenAI key (Accounts)
+  geminiModel: "gemini-3.8-flash", // the model used with the user's own Gemini key (Accounts)
   devServer: false,
   devPort: 8791,
 };

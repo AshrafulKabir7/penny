@@ -1,0 +1,366 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'" />
+    <title>Penny · Accounts</title>
+    <style>
+      :root {
+        --bg: #141416;
+        --panel: #1c1c20;
+        --line: #2c2c32;
+        --text: #f1eee7;
+        --muted: #9a968d;
+        --accent: #ffd23f;
+        --ok: #6fe39a;
+        --bad: #ff7a7a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      }
+      main {
+        padding: 22px 24px 18px;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        font-weight: 650;
+      }
+      .lead {
+        margin: 0 0 18px;
+        color: var(--muted);
+      }
+      section {
+        margin-bottom: 14px;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--panel);
+      }
+      h2 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .chip {
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 500;
+        background: #2a2a30;
+        color: var(--muted);
+      }
+      .chip.ok {
+        background: rgba(111, 227, 154, 0.14);
+        color: var(--ok);
+      }
+      .chip.using {
+        background: rgba(255, 210, 63, 0.16);
+        color: var(--accent);
+      }
+      .sub {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      input {
+        flex: 1;
+        min-width: 0;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #111114;
+        color: var(--text);
+        font: inherit;
+      }
+      input:focus {
+        outline: none;
+        border-color: #4a4a52;
+      }
+      button {
+        padding: 6px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #26262c;
+        color: var(--text);
+        font: inherit;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #303038;
+      }
+      button.primary {
+        border-color: transparent;
+        background: var(--accent);
+        color: #1a1a1a;
+        font-weight: 600;
+      }
+      button.current {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      a {
+        color: var(--accent);
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 13px;
+      }
+      .label {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .msg {
+        min-height: 18px;
+        margin-top: 6px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .msg.ok {
+        color: var(--ok);
+      }
+      .msg.bad {
+        color: var(--bad);
+      }
+      footer {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      footer b {
+        color: var(--text);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Accounts</h1>
+      <p class="lead">Penny runs on your own AI account. API keys are encrypted for your Windows user and never leave this computer except to go to their own provider.</p>
+
+      <section data-provider="anthropic">
+        <h2>Claude <span class="chip" data-chip>Not added</span></h2>
+        <p class="sub">Sign in with your Claude Console account, or paste an API key from it. Usage is billed to that account's API credit. Claude Pro and Max chat subscriptions can't be used here: Anthropic doesn't allow other apps to use them.</p>
+        <div class="row">
+          <button class="primary" data-claude-login>Sign in with Claude</button>
+          <span class="label" data-claude-signin></span>
+        </div>
+        <div class="row">
+          <input type="password" autocomplete="off" spellcheck="false" placeholder="or paste an API key: sk-ant-…" data-key />
+          <button class="primary" data-save>Save</button>
+        </div>
+        <div class="row">
+          <button data-test>Test</button>
+          <button data-remove>Remove</button>
+          <a data-link="https://console.anthropic.com/settings/keys">Get a key</a>
+        </div>
+        <div class="row">
+          <span class="label">Use</span>
+          <button data-use="claude:claude-opus-5-5">Opus 5.5</button>
+          <button data-use="claude:claude-sonnet-5-5">Sonnet 5.5</button>
+          <button data-use="claude:claude-haiku-5-5">Haiku 5.5</button>
+        </div>
+        <div class="msg" data-msg></div>
+      </section>
+
+      <section data-provider="openai">
+        <h2>OpenAI <span class="chip" data-chip>Not added</span></h2>
+        <p class="sub">Paste an API key from the OpenAI platform. Usage is billed to that OpenAI account.</p>
+        <div class="row">
+          <input type="password" autocomplete="off" spellcheck="false" placeholder="sk-…" data-key />
+          <button class="primary" data-save>Save</button>
+        </div>
+        <div class="row">
+          <button data-test>Test</button>
+          <button data-remove>Remove</button>
+          <a data-link="https://platform.openai.com/api-keys">Get a key</a>
+        </div>
+        <div class="row">
+          <span class="label">Model</span>
+          <input data-openai-model spellcheck="false" style="flex: 0 1 180px" />
+          <button data-use-openai>Use OpenAI</button>
+        </div>
+        <div class="msg" data-msg></div>
+      </section>
+
+      <section data-provider="codex">
+        <h2>ChatGPT account <span class="chip" data-chip>Checking…</span></h2>
+        <p class="sub">Uses OpenAI's Codex app with your ChatGPT plan. You sign in in your browser, so Penny never sees your password. Drawing starts once the whole answer is ready, so it's slower than the others.</p>
+        <div class="row">
+          <button class="primary" data-login>Sign in with ChatGPT</button>
+          <button data-use="codex:default">Use ChatGPT</button>
+        </div>
+        <div class="msg" data-msg></div>
+      </section>
+
+      <section data-provider="google">
+        <h2>Gemini <span class="chip" data-chip>Not added</span></h2>
+        <p class="sub">Paste an API key from Google AI Studio. Google gives a free allowance; beyond it, usage is billed to that Google Cloud account.</p>
+        <div class="row">
+          <input type="password" autocomplete="off" spellcheck="false" placeholder="AIza…" data-key />
+          <button class="primary" data-save>Save</button>
+        </div>
+        <div class="row">
+          <button data-test>Test</button>
+          <button data-remove>Remove</button>
+          <a data-link="https://aistudio.google.com/apikey">Get a key</a>
+        </div>
+        <div class="row">
+          <span class="label">Model</span>
+          <input data-gemini-model spellcheck="false" style="flex: 0 1 180px" />
+          <button data-use-gemini>Use Gemini</button>
+        </div>
+        <div class="msg" data-msg></div>
+      </section>
+
+      <section data-provider="google-account">
+        <h2>Google account <span class="chip" data-chip>Checking…</span></h2>
+        <p class="sub">Uses Gemini through Google's Antigravity app with your Google account, so you don't need a key. Sign-in opens Antigravity in its own window.</p>
+        <div class="row">
+          <button class="primary" data-google-login>Sign in with Google</button>
+          <button data-use="agy:gemini-3.8-flash-low">Gemini Flash</button>
+          <button data-use="agy:gemini-3.8-flash-high">Gemini Flash (deeper)</button>
+        </div>
+        <div class="msg" data-msg></div>
+      </section>
+
+      <section>
+        <h2>Command Code and Antigravity</h2>
+        <p class="sub">Sign in with their own apps (<code>command-code login</code>, or run <code>agy</code> once), then pick a model from the tray menu.</p>
+      </section>
+
+      <footer>Using now: <b data-current>…</b></footer>
+    </main>
+    <script>
+      const $ = (sel, root = document) => root.querySelector(sel);
+      const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+      const section = (p) => $(`section[data-provider="${p}"]`);
+      const say = (p, text, kind = "") => {
+        const m = $("[data-msg]", section(p));
+        m.textContent = text;
+        m.className = `msg ${kind}`;
+      };
+      let state = null;
+
+      function render(s) {
+        state = s;
+        for (const p of ["anthropic", "openai", "google"]) {
+          const chip = $("[data-chip]", section(p));
+          const signedIn = p === "anthropic" && !s.keys[p] && s.claude === "signed-in";
+          chip.textContent = s.keys[p] ? `Key saved · ${s.keys[p]}` : signedIn ? "Signed in" : "Not added";
+          chip.className = `chip ${s.keys[p] || signedIn ? "ok" : ""}`;
+          $("[data-test]", section(p)).disabled = !s.keys[p];
+          $("[data-remove]", section(p)).disabled = !s.keys[p];
+        }
+        const codexChip = $("[data-chip]", section("codex"));
+        codexChip.textContent = { "signed-in": "Signed in", "signed-out": "Not signed in", missing: "Codex not installed" }[s.codex] || s.codex;
+        codexChip.className = `chip ${s.codex === "signed-in" ? "ok" : ""}`;
+        $("[data-login]", section("codex")).textContent = s.codex === "signed-in" ? "Sign in again" : "Sign in with ChatGPT";
+        $("[data-login]", section("codex")).disabled = s.codex === "missing";
+        $("[data-openai-model]").value ||= s.openaiModel;
+        $("[data-gemini-model]").value ||= s.geminiModel;
+        $("[data-claude-signin]").textContent = { "signed-in": "Signed in to the Claude API", "signed-out": "", "no-cli": "Needs Anthropic's CLI (ant)" }[s.claude] || "";
+        const g = $("[data-chip]", section("google-account"));
+        g.textContent = { "signed-in": "Signed in", "signed-out": "Not signed in", missing: "Antigravity not installed", checking: "Checking…" }[s.google] || s.google;
+        g.className = `chip ${s.google === "signed-in" ? "ok" : ""}`;
+        $("[data-google-login]").disabled = s.google === "missing";
+        $("[data-use-gemini]").classList.toggle("current", s.model.startsWith("gemini:"));
+        for (const b of $$("[data-use]")) b.classList.toggle("current", b.dataset.use === s.model);
+        $("[data-use-openai]").classList.toggle("current", s.model.startsWith("openai:"));
+        $("[data-current]").textContent = s.modelName;
+      }
+
+      async function refresh() {
+        render(await window.accounts.state());
+      }
+
+      for (const p of ["anthropic", "openai", "google"]) {
+        const root = section(p);
+        $("[data-save]", root).onclick = async () => {
+          const input = $("[data-key]", root);
+          const res = await window.accounts.saveKey(p, input.value);
+          input.value = ""; // the key leaves the page as soon as it is handed over
+          if (res.error) return say(p, res.error, "bad");
+          render(res.state);
+          say(p, "Saved and encrypted.", "ok");
+        };
+        $("[data-key]", root).onkeydown = (e) => e.key === "Enter" && $("[data-save]", root).click();
+        $("[data-remove]", root).onclick = async () => {
+          render(await window.accounts.removeKey(p));
+          say(p, "Removed from this computer.");
+        };
+        $("[data-test]", root).onclick = async () => {
+          say(p, "Testing…");
+          const res = await window.accounts.test(p);
+          say(p, res.ok ? "The key works." : res.error, res.ok ? "ok" : "bad");
+        };
+      }
+
+      $("[data-login]").onclick = async () => {
+        say("codex", "Finish signing in in your browser…");
+        const res = await window.accounts.codexLogin();
+        if (res.error) say("codex", res.error, "bad");
+        else say("codex", "Signed in.", "ok");
+        if (res.state) render(res.state);
+      };
+
+      $("[data-claude-login]").onclick = async () => {
+        say("anthropic", "Finish signing in in your browser…");
+        const res = await window.accounts.claudeLogin();
+        if (res.install) {
+          say("anthropic", res.error, "bad");
+          window.accounts.open(res.install);
+        } else if (res.error) say("anthropic", res.error, "bad");
+        else say("anthropic", "Signed in.", "ok");
+        if (res.state) render(res.state);
+      };
+      $("[data-google-login]").onclick = async () => {
+        const res = await window.accounts.googleLogin();
+        say("google-account", res.error || "Sign in in the Antigravity window, then come back here.", res.error ? "bad" : "");
+      };
+      $("[data-use-gemini]").onclick = async () => {
+        const res = await window.accounts.use(`gemini:${$("[data-gemini-model]").value.trim()}`);
+        if (res.error) return say("google", res.error, "bad");
+        render(res.state);
+      };
+
+      for (const b of $$("[data-use]")) {
+        b.onclick = async () => {
+          const res = await window.accounts.use(b.dataset.use);
+          if (res.state) render(res.state);
+        };
+      }
+      $("[data-use-openai]").onclick = async () => {
+        const model = $("[data-openai-model]").value.trim();
+        const res = await window.accounts.use(`openai:${model}`);
+        if (res.error) return say("openai", res.error, "bad");
+        render(res.state);
+      };
+      for (const a of $$("[data-link]")) a.onclick = () => window.accounts.open(a.dataset.link);
+
+      // The model can also change from the tray, and the ChatGPT sign-in can finish in another window.
+      window.accounts.onChanged(refresh);
+      window.addEventListener("focus", refresh);
+      refresh();
+    </script>
+  </body>
+</html>

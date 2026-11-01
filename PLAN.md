@@ -157,6 +157,27 @@ Also fixed in this round:
 Checked in the real app with injected mouse movement while the key is held (`/talkkey`), and with `/overlay` reporting
 the trail's state. The user's own circle gesture ("explain me this further") came through as a circle.
 
+### Round 4: bring your own account
+
+Penny now works for anyone, not only people with Command Code or Antigravity:
+
+- **Claude API**: the user's own API key, through the official `@anthropic-ai/sdk`. Default Opus 5.5 with effort
+  `low` for speed, the cached system prompt, and server-side refusal fallback (`fallbacks: "default"`). A Claude API
+  sign-in the SDK finds by itself (env var, `ant auth login`) also works. Claude.ai subscription logins are not offered:
+  Anthropic does not allow third-party apps to use them.
+- **OpenAI API**: the user's own key, through the official `openai` SDK (Responses API, streaming, follow-ups chained
+  with `previous_response_id`).
+- **ChatGPT account**: through the Codex CLI (`codex exec --json`, read-only sandbox, threads resumed for follow-ups).
+  Sign-in is `codex login` in the user's browser. The reply arrives in one piece (~12 s).
+- **Keys**: encrypted with Electron `safeStorage` (Windows DPAPI) in `%APPDATA%\Penny\credentials.json`. The Accounts
+  window only gets masked hints, and a missing or rejected key opens Accounts automatically.
+
+Verified:
+- Mock API servers checked both SDK streaming paths and the request shapes.
+- The real Claude and OpenAI endpoints return the "key rejected" message for a fake key.
+- A real Codex answer was drawn in the app.
+- The encrypted key file holds no plaintext.
+
 ## 5. Risks and what we do about them
 
 - **Latency**: CLI start-up takes 7–14 s, so the processes are started when the app opens and kept warm. Ops stream

@@ -1,0 +1,7 @@
+{"op":"space","w":1600,"h":900}
+{"op":"say","text":"The highlighted output uses kernel K, and every other output reuses those same weights on its own patch."}
+{"op":"circle","box":[807,402,1236,491]}
+{"op":"card","id":"c1","box":[982,565,1510,750],"kicker":"shared weights","title":"One detector, many patches"}
+{"op":"row","card":"c1","items":[{"box":"same K","color":"blue"},{"arrow":""},{"box":"output 1","color":"green"},{"arrow":""},{"box":"output 2","color":"green"}]}
+{"op":"text","card":"c1","text":"The kernel slides across the image; its 9 weights are reused.","size":"small"}
+{"op":"say","text":"So the network learns one local pattern detector, then checks for that pattern across the whole map."}

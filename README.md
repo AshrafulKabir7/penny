@@ -4,17 +4,36 @@ Real-time graphics for AI on Windows. Press a key and ask out loud about whateve
 with a few spoken sentences while it draws on top of your screen: loops and labels on the real content, paper
 explainer cards, sticky notes, and interactive 3D scenes you can drag around. There is no chat window.
 
-The model is not an API key. Penny drives the **Command Code CLI** (through its ACP mode) or the **Antigravity CLI**
-(`agy`), whichever you are signed in to. See [PLAN.md](PLAN.md) for the design and how it maps to the demo it is based on.
+Penny ships with no account of its own: each user brings theirs (see [Accounts](#accounts)). See [PLAN.md](PLAN.md) for
+the design and how it maps to the demo it is based on.
 
 ## Requirements
 
 - Windows 10 or 11, Node.js 20 or newer
-- At least one CLI, signed in:
-  - Command Code: `npm i -g command-code`, then `command-code login`
-  - Antigravity: `agy`
+- One way to reach a model (see [Accounts](#accounts)):
+  - a **Claude**, **OpenAI** or **Gemini** API key, or **Sign in with Claude** (a Claude API account, through Anthropic's `ant` CLI)
+  - a **ChatGPT account** (through the Codex app or CLI) or a **Google account** (through Antigravity)
+  - **Command Code** (`npm i -g command-code`, then `command-code login`) or **Antigravity** (`agy`)
 - Python 3 with Whisper (speech to text) and edge-tts (natural voice):
   `py -m pip install -U openai-whisper edge-tts numpy`
+
+## Accounts
+
+Open the tray menu → **Accounts and API keys…**, set up one option, and press **Use** (or pick the model under Model
+in the tray).
+
+| Option | How you sign in | Notes |
+| --- | --- | --- |
+| Claude (Opus 5.5, Sonnet 5.5, Haiku 5.5) | **Sign in with Claude** (runs Anthropic's `ant auth login` in your browser), or paste an API key from the [Claude Console](https://console.anthropic.com/settings/keys) | Streams, so drawing starts at once. Billed to that Claude API account. Claude Pro/Max chat subscriptions can't be used: Anthropic doesn't allow third-party apps to use claude.ai logins. |
+| OpenAI (GPT-6.1 Terra, or any model you type) | Paste an API key from the [OpenAI platform](https://platform.openai.com/api-keys) | Streams. Billed to that OpenAI account. |
+| ChatGPT account | **Sign in with ChatGPT** runs `codex login`, which opens your browser | Uses your ChatGPT plan through OpenAI's Codex app/CLI. Codex returns the answer in one piece, so drawing starts later (~12 s). |
+| Gemini (Gemini 3.8 Flash, or any model you type) | Paste an API key from [Google AI Studio](https://aistudio.google.com/apikey) | Streams. Google's free allowance first, then billed to that Google Cloud account. |
+| Google account | **Sign in with Google** opens Antigravity, which signs in with your Google account | Gemini through Antigravity, with no key (~8 s per answer). |
+| Command Code / Antigravity | Their own CLI login | The original options; pick their models in the tray. |
+
+Keys are encrypted with Windows' per-user data protection and kept in `%APPDATA%\Penny\credentials.json`. Penny
+sends them only to their own provider, never writes them to the log, and the Accounts window only ever shows a masked
+hint (`sk-ant…9xQz`). **Test** makes one tiny request with the key, and **Remove** deletes it from the computer.
 
 ## Run
 
@@ -68,14 +87,14 @@ Command Code only offers some models on some plans. If a model is not on yours, 
 
 ## Your accounts and your data
 
-- **Bring your own login.** Penny ships with no keys or accounts. Each user signs in to the model CLI they use
-  (`command-code login`, or `agy`), and that login stays in the CLI's own settings on their machine. Penny never sees
-  a password and never writes a key anywhere.
+- **Bring your own login.** Penny ships with no keys or accounts. Each user adds their own API key (encrypted on
+  their machine) or signs in with their own ChatGPT, Command Code or Antigravity account, and those logins stay in
+  each tool's own settings. Penny never sees a password.
 - **Nothing personal goes in this repo.** Settings, the log and debug captures live in `%APPDATA%\Penny`, outside the
   project folder, and `.gitignore` also blocks `.env` files, keys, credential files and screenshots. Before pushing,
   run `npm run check-secrets`, which scans every file and every past commit for anything that looks like a credential.
 - **What leaves your machine.**
-  - When you ask, the screenshot and your question go to the model you picked, through its CLI.
+  - When you ask, the screenshot and your question go to the model you picked (its API or its CLI).
   - Spoken answers go to Microsoft's edge-tts service to be turned into speech (switch the tray to Windows voice to
     keep them local).
   - Speech recognition (Whisper) runs entirely on your computer.
@@ -106,6 +125,7 @@ Command Code only offers some models on some plans. If a model is not on yours, 
   - `POST /clear`
   - `POST /listen`
   - `POST /talkkey`: one talk-hotkey event, for testing tap and hold
+  - `POST /accounts`: open Accounts; `POST /accounts/call` with `{"fn", "args"}`: run one of its calls
   - `POST /stt` with raw 16 kHz float32: transcribe
   - `GET /snap`: PNG of the screen, drawings included
   - `GET /state`
@@ -118,7 +138,9 @@ Command Code only offers some models on some plans. If a model is not on yours, 
 
 ```
 src/main/        main process: main.js (windows, hotkeys, tray, ask loop), capture, settings, voice worker client
-src/main/providers/  acp.js (Command Code), agy.js (Antigravity), cli.js (finding/stopping the CLIs)
+src/main/providers/  acp.js (Command Code), agy.js (Antigravity), anthropic.js (Claude API), openai.js (OpenAI API),
+                     codex.js (ChatGPT via Codex), cli.js (finding/stopping the CLIs)
+src/main/credentials.js  the user's API keys, encrypted with Windows' per-user protection
 src/main/prompt.js   the scene language the model writes
 src/renderer/    overlay page: engine/ (parser, stage, card, marks, scene3d, sketch, icons), voice.js
 voice/penny_voice.py Whisper + edge-tts worker

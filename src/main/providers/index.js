@@ -1,9 +1,30 @@
 // The models Penny can use, and a factory for the provider behind an id like "cmd:deepseek/deepseek-v4.1-flash".
+//   cmd:<model>     Command Code CLI (the user's Command Code login)
+//   agy:<model>     Antigravity CLI (the user's Antigravity login)
+//   claude:<model>  Claude API (the user's own API key)
+//   openai:<model>  OpenAI API (the user's own API key)
+//   codex:<model>   ChatGPT account through the Codex CLI ("default" = the account's default model)
+//   gemini:<model>  Gemini API (the user's own API key)
 
 const { spawn } = require("node:child_process");
 const { AcpProvider } = require("./acp");
 const { AgyProvider } = require("./agy");
+const { ClaudeApiProvider } = require("./anthropic");
+const { OpenAiApiProvider } = require("./openai");
+const { CodexProvider } = require("./codex");
+const { GeminiApiProvider } = require("./gemini");
 const { commandCodeCommand, antigravityCommand, workDir } = require("./cli");
+
+// The user's own accounts: an API key they paste in Accounts, or their ChatGPT sign-in.
+const OWN_ACCOUNTS = [
+  { id: "claude:claude-opus-5-5", name: "Claude Opus 5.5 (your Claude account)", needs: "anthropic" },
+  { id: "claude:claude-sonnet-5-5", name: "Claude Sonnet 5.5 (your Claude account)", needs: "anthropic" },
+  { id: "claude:claude-haiku-5-5", name: "Claude Haiku 5.5 (your Claude account)", needs: "anthropic" },
+  { id: "openai:gpt-6.1-terra", name: "GPT-6.1 Terra (your OpenAI API key)", needs: "openai" },
+  { id: "codex:default", name: "ChatGPT (your ChatGPT account, via Codex)", needs: "codex" },
+  { id: "gemini:gemini-3.8-flash", name: "Gemini 3.8 Flash (your Gemini API key)", needs: "google" },
+  { id: "agy:gemini-3.8-flash-low", name: "Gemini 3.8 Flash (your Google account, via Antigravity)", needs: "google-account" },
+];
 
 // Models that can read a screenshot and that worked on this machine's plans, fastest first.
 const SUGGESTED = [
@@ -22,13 +43,27 @@ const SUGGESTED = [
 const DEFAULT_MODEL = SUGGESTED[0].id;
 
 function parseModelId(id) {
-  const m = /^(cmd|agy):([A-Za-z0-9][A-Za-z0-9._/:-]*)$/.exec(id || "");
+  const m = /^(cmd|agy|claude|openai|codex|gemini):([A-Za-z0-9][A-Za-z0-9._/:-]*)$/.exec(id || "");
   return m ? { kind: m[1], model: m[2] } : null;
 }
 
-function createProvider(id, log) {
-  const parsed = parseModelId(id) || parseModelId(DEFAULT_MODEL);
-  return parsed.kind === "cmd" ? new AcpProvider({ model: parsed.model, log }) : new AgyProvider({ model: parsed.model, log });
+/** `getKey(provider)` returns the user's saved API key for "anthropic" or "openai", or null. */
+function createProvider(id, log, { getKey = () => null } = {}) {
+  const { kind, model } = parseModelId(id) || parseModelId(DEFAULT_MODEL);
+  switch (kind) {
+    case "claude":
+      return new ClaudeApiProvider({ model, log, getKey: () => getKey("anthropic") });
+    case "openai":
+      return new OpenAiApiProvider({ model, log, getKey: () => getKey("openai") });
+    case "codex":
+      return new CodexProvider({ model, log });
+    case "gemini":
+      return new GeminiApiProvider({ model, log, getKey: () => getKey("google") });
+    case "agy":
+      return new AgyProvider({ model, log });
+    default:
+      return new AcpProvider({ model, log });
+  }
 }
 
 function runList(cmd) {
@@ -62,4 +97,4 @@ async function discoverModels() {
   return ids;
 }
 
-module.exports = { SUGGESTED, DEFAULT_MODEL, parseModelId, createProvider, discoverModels };
+module.exports = { SUGGESTED, OWN_ACCOUNTS, DEFAULT_MODEL, parseModelId, createProvider, discoverModels };
