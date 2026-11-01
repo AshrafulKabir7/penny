@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const require = createRequire(import.meta.url);
 const { createProvider } = require("../src/main/providers/index.js");
+const { answerSpace } = require("../src/main/prompt.js");
 
 const [id, image, question, out] = process.argv.slice(2);
 if (!id || !image || !question) {
@@ -64,6 +65,6 @@ const res = await provider.ask({
   },
 });
 console.error(`\nfirst token: ${first} ms, answer: ${Date.now() - t1} ms, ${res.text.length} chars`);
-if (out) writeFileSync(out, `${JSON.stringify({ op: "space", w: size.width, h: size.height })}\n${res.text}`);
+if (out) writeFileSync(out, `${JSON.stringify({ op: "space", ...answerSpace(provider.model, shot) })}\n${res.text}`);
 provider.dispose();
 process.exit(0);

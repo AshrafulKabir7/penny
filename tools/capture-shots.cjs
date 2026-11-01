@@ -2,6 +2,9 @@
 // Runs offscreen, so nothing appears on the screen.
 //   npx electron tools/capture-shots.cjs <out dir> [demo ...]
 // Each demo is captured at several moments (shot-<demo>-<seconds>s.png) to pick the best frame from.
+// A demo can also be a saved reply anywhere in the project ("../../.cache/nn/before/cmd" plays .cache/nn/before/cmd.jsonl).
+// BG=<image in the project> draws over that screenshot instead of the neutral page (give SIZE too); MOMENTS=6,12,20 sets
+// the capture times.
 
 const { app, BrowserWindow } = require("electron");
 const { createServer } = require("node:http");
@@ -9,9 +12,9 @@ const { createReadStream, existsSync, mkdirSync, writeFileSync } = require("node
 const { extname, join, normalize, resolve } = require("node:path");
 
 const ROOT = resolve(__dirname, "..");
-const W = 1440;
-const H = 900;
-const MOMENTS = [5, 9, 13, 18, 24]; // seconds after the demo starts
+// SIZE=1600x850 matches the window to a BG screenshot (the overlay maps the answer onto the window).
+const [W, H] = (process.env.SIZE || "1440x900").split("x").map(Number);
+const MOMENTS = (process.env.MOMENTS || "5,9,13,18,24").split(",").map(Number); // seconds after the demo starts
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".jsonl": "text/plain", ".png": "image/png", ".woff2": "font/woff2", ".woff": "font/woff" };
 
 // The "screen" Penny draws on: a calm, generic article page, so the drawings are what you notice.
@@ -70,12 +73,13 @@ app.whenReady().then(async () => {
   writeFileSync(join(ROOT, ".cache", "screen.png"), await snap());
 
   for (const demo of demos) {
-    await win.loadURL(`${base}/src/renderer/overlay.html?bg=/.cache/screen.png&mute=1&nobar=1&demos=${demo}&play=${demo}`);
+    const bg = process.env.BG ? `/${process.env.BG.replace(/\\/g, "/")}` : "/.cache/screen.png";
+    await win.loadURL(`${base}/src/renderer/overlay.html?bg=${bg}&mute=1&nobar=1&demos=${demo}&play=${demo}`);
     let elapsed = 0;
     for (const s of MOMENTS) {
       await wait((s - elapsed) * 1000);
       elapsed = s;
-      writeFileSync(join(out, `shot-${demo}-${s}s.png`), await snap());
+      writeFileSync(join(out, `shot-${demo.split("/").pop()}-${s}s.png`), await snap());
     }
     console.log(`captured ${demo}`);
   }

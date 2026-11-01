@@ -15,6 +15,7 @@ const { codexStatus, codexLogin } = require("./providers/codex");
 const { testGeminiKey } = require("./providers/gemini");
 const { claudeSignInStatus, claudeSignIn, googleAccountStatus, googleSignIn } = require("./signin");
 const { registerNativeHost } = require("./native-host");
+const { answerSpace, inSpace } = require("./prompt");
 const { VoiceWorker } = require("./voice");
 const { trayIconPng } = require("./icon");
 
@@ -220,9 +221,10 @@ async function ask(question, shotPromise, pointedAt = null, gesture = null) {
     if (previous) await Promise.race([previous, new Promise((r) => setTimeout(r, 4000))]);
     let shot = await shotPromise;
     if (id !== askSeq) return;
-    send("answer:space", { w: shot.imageWidth, h: shot.imageHeight });
+    const space = answerSpace(provider.model, shot); // Gemini models answer on a 0-1000 grid
     shot = withPointer(shot, pointedAt, question, gesture);
-    send("answer:pointer", shot.pointer);
+    send("answer:space", space);
+    send("answer:pointer", inSpace(shot, space).pointer);
     const followUp = visualsOnScreen || Date.now() - lastAnswerAt < FOLLOW_UP_MS;
     if (!followUp && provider.turns > 0) await provider.newTopic();
     const started = Date.now();

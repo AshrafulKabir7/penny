@@ -6,7 +6,7 @@
 const { spawn } = require("node:child_process");
 const { EventEmitter } = require("node:events");
 const { commandCodeCommand, killTree, workDir, jsonLines } = require("./cli");
-const { buildTurn } = require("../prompt");
+const { buildTurn, usesGrid } = require("../prompt");
 
 class AcpProvider extends EventEmitter {
   constructor({ model, effort = "off", log = () => {} }) {
@@ -133,7 +133,7 @@ class AcpProvider extends EventEmitter {
     if (!this.session) this.session = await this._newSession();
     const session = this.session;
     const closeupRef = shot.closeup ? "the second attached image" : null;
-    const text = buildTurn({ question, shot, imageRef: "inline", closeupRef, firstTurn: session.turns === 0, visualsOnScreen });
+    const text = buildTurn({ question, shot, imageRef: "inline", closeupRef, firstTurn: session.turns === 0, visualsOnScreen, grid: usesGrid(this.model) });
     const images = [shot.jpeg, shot.closeup].filter(Boolean).map((jpeg) => ({ type: "image", mimeType: "image/jpeg", data: jpeg.toString("base64") }));
     let full = "";
     this.chunkSink = (t) => {

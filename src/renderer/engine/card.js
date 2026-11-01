@@ -4,6 +4,8 @@ import { color, drawIn, INK, nextSeed, roughFor, sleep, svgEl } from "./sketch.j
 import { iconSvg } from "./icons.js";
 
 const text = (v) => (v == null ? "" : String(v)).slice(0, 160);
+// Cards stay above the captions bar near the bottom of the screen (.caption-line in overlay.css: 70 px up, two lines tall).
+const CAPTIONS = 140;
 
 export class Card {
   constructor(stage, op) {
@@ -224,10 +226,10 @@ export class Card {
     await drawIn(g, { duration: 900, pen: this.stage.pen, toScreen: (x, y) => ({ x: r.left + x, y: r.top + y }) });
   }
 
-  /** Cards grow downwards; slide the card up if it would run off the screen. */
+  /** Cards grow downwards; slide the card up if it would run off the screen or under the captions near the bottom. */
   keepOnScreen() {
     const r = this.el.getBoundingClientRect();
-    const over = r.bottom - (window.innerHeight - 16);
+    const over = r.bottom - (window.innerHeight - CAPTIONS);
     if (over > 0) this.el.style.top = `${Math.max(12, r.top - over)}px`;
   }
 

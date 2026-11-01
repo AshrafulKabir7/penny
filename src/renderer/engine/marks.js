@@ -36,8 +36,16 @@ export async function circle(stage, op) {
   const [x0, y0, x1, y1] = stage.markBox(op.box);
   const m = new SvgMark(stage);
   const rc = roughFor(stage.marksSvg);
-  const w = Math.max(30, x1 - x0) * 1.18 + 18;
-  const h = Math.max(20, y1 - y0) * 1.35 + 16;
+  // The loop hugs its box: a little room past the ends of the long side, and enough across to clear the corners. A tall
+  // column or a long line of text gets a slim loop instead of one that runs far past its ends into whatever is next.
+  const bw = Math.max(30, x1 - x0);
+  const bh = Math.max(20, y1 - y0);
+  const long = Math.max(bw, bh);
+  const short = Math.min(bw, bh);
+  const along = long * 1.1 + 14;
+  const k = Math.min(0.92, long / along); // where the box's corners sit along the ellipse's long axis
+  const across = Math.min(short / Math.sqrt(1 - k * k), short * 1.9 + 24);
+  const [w, h] = bw >= bh ? [along, across] : [across, along];
   m.g.appendChild(rc.ellipse((x0 + x1) / 2, (y0 + y1) / 2, w, h, { stroke: MARKER, strokeWidth: 3, roughness: 1.4, bowing: 1.5, seed: nextSeed() }));
   await stage.pen.moveTo((x0 + x1) / 2 + w / 2, (y0 + y1) / 2);
   await m.draw(650);

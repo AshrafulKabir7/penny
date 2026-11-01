@@ -9,6 +9,7 @@ import { ClaudeApiProvider, testClaudeKey } from "../src/main/providers/anthropi
 import { OpenAiApiProvider, testOpenAiKey } from "../src/main/providers/openai.js";
 import { GeminiApiProvider, testGeminiKey } from "../src/main/providers/gemini.js";
 import { POINTING, gestureOnShot } from "../src/main/gesture.js";
+import { answerSpace, inSpace } from "../src/main/prompt.js";
 import { ACCOUNTS, KEY_FOR, loadSettings as settings } from "./models.js";
 
 const MAX_WIDTH = 1600; // screenshot width sent to the model
@@ -127,8 +128,9 @@ async function ask(tabId, t, { question, pointer, gesture, view }) {
     let shot = await capture(t, tab);
     if (id !== t.askSeq) return;
     shot = await withPointer(shot, question, pointer, gesture, view);
-    send(t, "answer:space", { w: shot.imageWidth, h: shot.imageHeight });
-    send(t, "answer:pointer", shot.pointer);
+    const space = answerSpace(t.provider.model, shot); // Gemini models answer on a 0-1000 grid
+    send(t, "answer:space", space);
+    send(t, "answer:pointer", inSpace(shot, space).pointer);
     const followUp = t.visuals || Date.now() - t.lastAnswerAt < FOLLOW_UP_MS;
     if (!followUp && t.provider.turns > 0) await t.provider.newTopic();
     await t.provider.ask({

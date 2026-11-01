@@ -3,7 +3,7 @@
 // one combined reply per turn (the SDK's chat helper stores every streamed chunk as a separate reply).
 
 const { GoogleGenAI, ApiError } = require("@google/genai");
-const { sceneLanguage, buildTurn } = require("../prompt");
+const { sceneLanguage, buildTurn, usesGrid } = require("../prompt");
 
 const LEVEL = { off: "LOW", low: "LOW", default: "MEDIUM", high: "HIGH" };
 
@@ -44,11 +44,11 @@ class GeminiApiProvider {
 
   async ask({ question, shot, visualsOnScreen, onDelta }) {
     if (!this.turnCount) {
-      this.system = sceneLanguage(shot.imageWidth, shot.imageHeight);
+      this.system = sceneLanguage(shot.imageWidth, shot.imageHeight, { grid: usesGrid(this.model) });
       this.client = this._client();
     }
     const closeupRef = shot.closeup ? "the second attached image" : null;
-    const text = buildTurn({ question, shot, imageRef: "inline", closeupRef, firstTurn: this.turnCount === 0, visualsOnScreen, separateSystem: true });
+    const text = buildTurn({ question, shot, imageRef: "inline", closeupRef, firstTurn: this.turnCount === 0, visualsOnScreen, separateSystem: true, grid: usesGrid(this.model) });
     const message = [
       ...[shot.jpeg, shot.closeup].filter(Boolean).map((jpeg) => ({ inlineData: { mimeType: "image/jpeg", data: jpeg.toString("base64") } })),
       { text },

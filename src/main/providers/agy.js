@@ -6,7 +6,7 @@ const { spawn } = require("node:child_process");
 const { writeFileSync, rmSync } = require("node:fs");
 const { join } = require("node:path");
 const { antigravityCommand, killTree, workDir, jsonLines } = require("./cli");
-const { buildTurn } = require("../prompt");
+const { buildTurn, usesGrid } = require("../prompt");
 
 let folderSeq = 0;
 
@@ -118,7 +118,7 @@ class AgyProvider {
       writeFileSync(join(proc.dir, closeup), shot.closeup);
       closeupRef = `the file ${closeup} (open it too)`;
     }
-    const text = buildTurn({ question, shot, imageRef: file, closeupRef, firstTurn: proc.turns === 0, visualsOnScreen });
+    const text = buildTurn({ question, shot, imageRef: file, closeupRef, firstTurn: proc.turns === 0, visualsOnScreen, grid: usesGrid(this.model) });
     this.busy = proc;
     try {
       const res = await proc.turn(text, onDelta);
