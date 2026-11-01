@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' file: data: blob:; script-src 'self' file: blob: 'unsafe-inline'; style-src 'self' file: 'unsafe-inline'; font-src 'self' file: data:; media-src 'self' file: data: blob: http://127.0.0.1:*; img-src 'self' file: data: blob: http://127.0.0.1:*; connect-src 'self' file: data: blob: http://127.0.0.1:*; worker-src blob:" />
+    <title>Talky</title>
+    <link rel="stylesheet" href="../../node_modules/@fontsource/kalam/400.css" />
+    <link rel="stylesheet" href="../../node_modules/@fontsource/kalam/700.css" />
+    <link rel="stylesheet" href="overlay.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "../../node_modules/three/build/three.module.js",
+          "three/addons/": "../../node_modules/three/examples/jsm/",
+          "roughjs": "../../node_modules/roughjs/bundled/rough.esm.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <div id="pill" class="pill">
+      <span class="pill-dot"></span>
+      <span class="pill-bars"><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="pill-text"></span>
+    </div>
+    <div id="caption" class="caption-line"></div>
+    <script type="module" src="overlay.js"></script>
+  </body>
+</html>

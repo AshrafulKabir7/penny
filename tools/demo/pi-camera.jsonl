@@ -1,0 +1,34 @@
+{"op":"space","w":1600,"h":900}
+{"op":"clear"}
+{"op":"say","text":"Two normal ways: the ribbon camera cable that plugs into the board, or a USB webcam."}
+{"op":"scene","id":"s1","box":[520,330,1400,880],"view":"top","spin":false}
+{"op":"part","scene":"s1","id":"board","shape":"box","size":[10,0.25,6.2],"pos":[0,0,0],"color":"#1e7a46","material":"matte"}
+{"op":"part","scene":"s1","id":"csi_connector","shape":"box","size":[1.9,0.35,0.5],"pos":[-2.2,0.3,-2.6],"color":"#111111","material":"plastic"}
+{"op":"part","scene":"s1","id":"csi_latch","shape":"box","size":[1.8,0.15,0.35],"pos":[-2.2,0.55,-2.55],"color":"#d8d8d8","material":"plastic"}
+{"op":"part","scene":"s1","id":"usb3","shape":"box","size":[1.4,0.7,0.9],"pos":[5.0,0.35,2.3],"color":"#4a7fd4","material":"plastic"}
+{"op":"part","scene":"s1","id":"gpio_pins","shape":"box","size":[4.9,0.08,0.12],"pos":[0.4,0.6,-2.35],"color":"#e0b83a","material":"metal"}
+{"op":"part","scene":"s1","id":"ribbon","shape":"extrude","points":[[-1.4,0],[-1.4,0.55],[0,0.55],[-0.15,0]],"depth":0.06,"pos":[-2.2,0.45,-2.6],"color":"#e8e4d8","material":"plastic"}
+{"op":"part","scene":"s1","id":"camera","shape":"box","size":[1.6,0.5,1.6],"pos":[-2.2,2.2,4.6],"color":"#1c6b6b","material":"plastic"}
+{"op":"part","scene":"s1","id":"lens","shape":"cylinder","size":[0.45,0.45,0.35],"pos":[-2.2,2.2,5.5],"axis":"z","color":"#101014","material":"glass"}
+{"op":"part","scene":"s1","id":"cam_ribbon","shape":"box","size":[0.55,0.06,4.2],"pos":[-2.2,1.15,-0.9],"color":"#e8e4d8","material":"plastic"}
+{"op":"part","scene":"s1","id":"webcam","shape":"box","size":[1.5,0.9,1.1],"pos":[5.0,1.0,3.4],"color":"#2a2a2e","material":"matte"}
+{"op":"part","scene":"s1","id":"webcam_lens","shape":"cylinder","size":[0.35,0.35,0.25],"pos":[5.0,1.0,4.1],"axis":"z","color":"#0e0e12","material":"glass"}
+{"op":"tag","scene":"s1","target":"csi_connector","text":"Camera port (CSI)","color":"green"}
+{"op":"tag","scene":"s1","target":"camera","text":"Pi camera module","color":"blue"}
+{"op":"tag","scene":"s1","target":"webcam","text":"USB webcam","color":"purple"}
+{"op":"tag","scene":"s1","target":"csi_latch","text":"Flip-up latch","color":"yellow"}
+{"op":"say","text":"The flat ribbon goes into that black connector — silver contacts facing away from the board."}
+{"op":"focus","scene":"s1","target":"csi_connector"}
+{"op":"arrow","from":[300,700],"to":[900,540],"text":"silver side up"}
+{"op":"say","text":"Lift the black latch, slide the ribbon in until it stops, then push the latch back down."}
+{"op":"move","scene":"s1","target":"csi_latch","to":[-2.2,0.85,-2.55],"rot":[-45,0,0],"seconds":1.2}
+{"op":"wait","ms":1400}
+{"op":"move","scene":"s1","target":"cam_ribbon","to":[-2.2,0.5,-1.2],"seconds":1.5}
+{"op":"wait","ms":1600}
+{"op":"move","scene":"s1","target":"csi_latch","to":[-2.2,0.55,-2.55],"rot":[0,0,0],"seconds":1}
+{"op":"say","text":"Power off while you do it, then enable the camera in raspi-config and reboot."}
+{"op":"note","at":[780,380],"text":"Power off first","color":"yellow"}
+{"op":"focus","scene":"s1","target":"webcam"}
+{"op":"say","text":"If you'd rather not fiddle with ribbon cables, any USB webcam just plugs straight into the blue USB 3 port."}
+{"op":"wait","ms":600}
+{"op":"focus","scene":"s1"}

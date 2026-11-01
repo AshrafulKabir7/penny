@@ -1,0 +1,34 @@
+{"op":"space","w":1600,"h":900}
+{"op":"say","text":"A Raspberry Pi is a tiny, cheap computer the size of a credit card, and it runs Linux."}
+{"op":"say","text":"Here's the real thing — a green board with ports along the edges and chips in the middle."}
+{"op":"scene","id":"s1","box":[560,330,1380,880],"view":"top","spin":false}
+{"op":"part","scene":"s1","id":"board","shape":"box","size":[10,0.25,6.2],"pos":[0,0,0],"color":"#1e7a46","material":"matte"}
+{"op":"part","scene":"s1","id":"cpu","shape":"box","size":[1.7,0.3,1.7],"pos":[-0.6,0.28,0.3],"color":"#2b2b2b","material":"plastic"}
+{"op":"part","scene":"s1","id":"cpu_heatsink","shape":"box","size":[1.9,0.35,1.9],"pos":[-0.6,0.6,0.3],"color":"#b8bcc4","material":"metal"}
+{"op":"part","scene":"s1","id":"ram","shape":"box","size":[1.5,0.22,1.1],"pos":[1.5,0.25,0.6],"color":"#1a1a1a","material":"plastic"}
+{"op":"part","scene":"s1","id":"wifi","shape":"box","size":[0.9,0.18,0.9],"pos":[3.2,0.22,-1.6],"color":"#c8ccd2","material":"metal"}
+{"op":"part","scene":"s1","id":"usb2","shape":"box","size":[1.4,0.7,0.9],"pos":[3.6,0.35,2.3],"color":"#c9ccd1","material":"metal"}
+{"op":"part","scene":"s1","id":"usb3","shape":"box","size":[1.4,0.7,0.9],"pos":[5.0,0.35,2.3],"color":"#4a7fd4","material":"plastic"}
+{"op":"part","scene":"s1","id":"ethernet","shape":"box","size":[1.6,0.85,1.1],"pos":[-4.4,0.4,2.2],"color":"#c9ccd1","material":"metal"}
+{"op":"part","scene":"s1","id":"hdmi","shape":"box","size":[1.2,0.35,0.8],"pos":[-3.6,0.22,-2.9],"color":"#b9bcc2","material":"metal"}
+{"op":"part","scene":"s1","id":"usbc_power","shape":"box","size":[0.7,0.3,0.5],"pos":[-4.7,0.2,-2.9],"color":"#c9ccd1","material":"metal"}
+{"op":"part","scene":"s1","id":"audio","shape":"box","size":[0.6,0.3,0.5],"pos":[-4.7,0.2,-2.0],"color":"#1a1a1a","material":"plastic"}
+{"op":"part","scene":"s1","id":"microsd","shape":"box","size":[1.3,0.12,1.0],"pos":[-2.6,0.2,-2.95],"color":"#2b2b2b","material":"plastic"}
+{"op":"part","scene":"s1","id":"gpio","shape":"box","size":[5.2,0.45,0.55],"pos":[0.4,0.35,-2.35],"color":"#111111","material":"plastic"}
+{"op":"part","scene":"s1","id":"gpio_pins","shape":"box","size":[4.9,0.08,0.12],"pos":[0.4,0.6,-2.35],"color":"#e0b83a","material":"metal"}
+{"op":"part","scene":"s1","id":"mount_bl","shape":"cylinder","size":[0.22,0.22,0.3],"pos":[-4.3,0.05,-2.5],"axis":"y","color":"#c0c4ca","material":"metal"}
+{"op":"part","scene":"s1","id":"mount_tr","shape":"cylinder","size":[0.22,0.22,0.3],"pos":[4.3,0.05,2.5],"axis":"y","color":"#c0c4ca","material":"metal"}
+{"op":"tag","scene":"s1","target":"cpu_heatsink","text":"Processor","color":"blue"}
+{"op":"tag","scene":"s1","target":"gpio_pins","text":"GPIO pins","color":"green"}
+{"op":"tag","scene":"s1","target":"usb3","text":"USB ports","color":"purple"}
+{"op":"tag","scene":"s1","target":"ethernet","text":"Ethernet","color":"yellow"}
+{"op":"tag","scene":"s1","target":"microsd","text":"microSD card slot","color":"pink"}
+{"op":"say","text":"Those 40 gold pins on the edge are the GPIO header — that's how you wire up LEDs, sensors and motors."}
+{"op":"focus","scene":"s1","target":"gpio_pins"}
+{"op":"say","text":"The metal lid covers the processor; the small silver square is WiFi and Bluetooth."}
+{"op":"focus","scene":"s1","target":"cpu_heatsink"}
+{"op":"say","text":"Plug in power, HDMI, a microSD with an operating system — and it boots as a full desktop computer."}
+{"op":"focus","scene":"s1","target":"hdmi"}
+{"op":"wait","ms":400}
+{"op":"focus","scene":"s1"}
+{"op":"say","text":"People use them for retro consoles, home servers, robots and little electronics projects like yours."}

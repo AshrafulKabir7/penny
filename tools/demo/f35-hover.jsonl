@@ -1,0 +1,13 @@
+{"op":"say","text":"Yes, it's real. That's an F-35B, the version built to hover, and it's parked in the air, not just photographed mid-pass."}
+{"op":"circle","box":[430,278,700,350]}
+{"op":"label","at":[700,300],"text":"F-35B","color":"blue","side":"right"}
+{"op":"say","text":"The trick is that the lift fan behind the cockpit blows cold air straight down while the engine nozzle swivels toward the ground."}
+{"op":"card","id":"c1","box":[690,380,990,700],"kicker":"how a jet sits still in the air","title":"Lift, balanced"}
+{"op":"row","card":"c1","step":1,"items":[{"icon":"fan"},{"text":"Lift fan spins"},{"arrow":""},{"box":"cold air down","color":"blue"}]}
+{"op":"row","card":"c1","step":2,"items":[{"box":"engine nozzle","color":"pink"},{"arrow":""},{"box":"hot air down","color":"pink"}]}
+{"op":"say","text":"Both streams push down, so the plane pushes up, just as hard as its own weight, so it hangs there."}
+{"op":"say","text":"But there's a catch: the thrust has to match gravity almost exactly. Any wobble or bad air and it drifts."}
+{"op":"arrow","from":[880,470],"to":[880,560],"text":"thrust must equal weight"}
+{"op":"say","text":"Keep your eye on the video. It also has to fight the ground effect and strong wind, which is why it looks slightly jittery."}
+{"op":"point","at":[620,430]}
+{"op":"say","text":"So yes, real. And that caption is my friend Hubert, so I'll vouch for it too."}

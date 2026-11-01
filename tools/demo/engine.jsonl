@@ -1,0 +1,30 @@
+{"op":"space","w":1600,"h":900}
+{"op":"say","text":"Air gets sucked in, squeezed, set on fire, and blasted out the back — that's a jet engine."}
+{"op":"scene","id":"s1","box":[560,120,1560,780],"view":"iso","spin":false}
+{"op":"part","scene":"s1","id":"nacelle","shape":"cylinder","size":[2.6,2.6,9],"pos":[0,0,0],"axis":"x","color":"#c8ccd2","material":"glass"}
+{"op":"part","scene":"s1","id":"spinner","shape":"cone","size":[0.9,1.2],"pos":[-5.2,0,0],"axis":"x","color":"#8f959e","material":"metal"}
+{"op":"part","scene":"s1","id":"fan","shape":"fan","size":[2.3,18,0.15],"pos":[-4.2,0,0],"axis":"x","color":"#b7bcc4","material":"metal"}
+{"op":"part","scene":"s1","id":"bypass","shape":"cylinder","size":[2.35,2.35,0.1],"pos":[-3.4,0,0],"axis":"x","color":"#9aa0a8","material":"metal"}
+{"op":"part","scene":"s1","id":"lpcomp","shape":"cylinder","size":[1.5,1.5,1.2],"pos":[-2.6,0,0],"axis":"x","color":"#d4a94a","material":"metal"}
+{"op":"say","text":"The big fan at the front pulls in air and pushes most of it around the core."}
+{"op":"part","scene":"s1","id":"hpcomp","shape":"cylinder","size":[1.2,1.3,1.6],"pos":[-0.9,0,0],"axis":"x","color":"#e0b855","material":"metal"}
+{"op":"part","scene":"s1","id":"combustor","shape":"cylinder","size":[1.35,1.1,1.4],"pos":[0.6,0,0],"axis":"x","color":"#e07a3a","material":"metal"}
+{"op":"part","scene":"s1","id":"fuel","shape":"cylinder","size":[0.25,0.25,1.6],"pos":[0.6,1.0,0],"axis":"y","color":"#4aa3ff","material":"metal"}
+{"op":"say","text":"Inside the core, the compressor squeezes that air, then fuel sprays in and burns."}
+{"op":"part","scene":"s1","id":"hpturb","shape":"cylinder","size":[1.15,1.15,0.7],"pos":[1.8,0,0],"axis":"x","color":"#c96f3a","material":"metal"}
+{"op":"part","scene":"s1","id":"lpturb","shape":"cylinder","size":[1.3,1.3,1.2],"pos":[2.8,0,0],"axis":"x","color":"#b8642f","material":"metal"}
+{"op":"part","scene":"s1","id":"shaft","shape":"cylinder","size":[0.18,0.18,7.4],"pos":[-1.4,0,0],"axis":"x","color":"#7a8088","material":"metal"}
+{"op":"part","scene":"s1","id":"nozzle","shape":"cylinder","size":[1.1,0.85,1.6],"pos":[4.4,0,0],"axis":"x","color":"#a9aeb6","material":"metal"}
+{"op":"say","text":"The hot gas spins the turbine, and a shaft carries that power back to drive the fan and compressor."}
+{"op":"part","scene":"s1","id":"exhaust","shape":"cone","size":[0.72,1.2],"pos":[5.6,0,0],"axis":"x","color":"#8b9098","material":"metal"}
+{"op":"tag","scene":"s1","target":"fan","text":"Fan","color":"blue"}
+{"op":"tag","scene":"s1","target":"hpcomp","text":"Compressor","color":"yellow"}
+{"op":"tag","scene":"s1","target":"combustor","text":"Combustion","color":"pink"}
+{"op":"tag","scene":"s1","target":"lpturb","text":"Turbine","color":"green"}
+{"op":"tag","scene":"s1","target":"bypass","text":"Bypass air","color":"gray"}
+{"op":"spin","scene":"s1","target":"fan","axis":"x","speed":1}
+{"op":"flow","scene":"s1","path":[[-6.5,0.6,0],[-2,0.6,0],[1.5,0.6,0],[4,0.6,0],[6.5,0.6,0]],"color":"#4aa3ff","text":"air"}
+{"op":"flow","scene":"s1","path":[[1.8,-0.6,0],[3.4,-0.6,0],[6.6,-0.6,0]],"color":"#ff7a3a","text":"hot gas"}
+{"op":"say","text":"Compressor, combustor, turbine, fan — spinning on one shaft. Thrust comes out of it all."}
+{"op":"wait","ms":400}
+{"op":"focus","scene":"s1","target":"combustor"}

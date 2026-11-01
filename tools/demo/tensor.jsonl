@@ -1,0 +1,17 @@
+{"op":"say","text":"That tensor is just nine tokens — and every window of eight becomes one little quiz."}
+{"op":"circle","box":[196,496,346,524]}
+{"op":"say","text":"Watch the loop: x grabs eight tokens, y grabs the same eight shifted one to the right."}
+{"op":"card","id":"c1","box":[636,236,996,598],"kicker":"block_size = 8","title":"One slice, eight quizzes"}
+{"op":"row","card":"c1","items":[{"text":"take 9 tokens"},{"icon":"doc"}]}
+{"op":"row","card":"c1","items":[{"box":"input x","color":"blue"},{"arrow":"shift by 1"},{"box":"answer y","color":"pink"}]}
+{"op":"row","card":"c1","items":[{"box":"[18]","color":"blue"},{"arrow":"next"},{"box":"47","color":"pink"}]}
+{"op":"row","card":"c1","items":[{"box":"[18, 47, 56]","color":"blue"},{"arrow":"next"},{"box":"57","color":"pink"}],"caption":"every token in x pairs with the token after it"}
+{"op":"row","card":"c1","items":[{"icon":"check"},{"text":"8 question-answer pairs"}]}
+{"op":"say","text":"Same eight tokens, two views: context on the left, the answer always one step ahead."}
+{"op":"underline","box":[195,532,290,554]}
+{"op":"underline","box":[195,554,278,578]}
+{"op":"arrow","from":[600,520],"to":[240,545],"text":"x and y"}
+{"op":"say","text":"The printout shows it: given 18 it should guess 47; given 18 and 47 it should guess 56."}
+{"op":"highlight","box":[199,614,368,638]}
+{"op":"highlight","box":[199,642,372,666]}
+{"op":"say","text":"Slide that window one token at a time and a tiny notebook turns into thousands of examples."}

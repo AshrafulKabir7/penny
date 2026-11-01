@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'" />
+    <title>Ask Talky</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: transparent;
+        overflow: hidden;
+        font: 16px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      }
+      form {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 8px;
+        height: 48px;
+        padding: 0 16px;
+        border-radius: 24px;
+        background: rgba(14, 14, 16, 0.94);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #ffd23f;
+        flex: none;
+      }
+      input {
+        flex: 1;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: #f4f1ea;
+        font: inherit;
+      }
+      input::placeholder {
+        color: #8d8a84;
+      }
+      kbd {
+        color: #8d8a84;
+        font: 12px inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="f">
+      <span class="dot"></span>
+      <input id="q" autocomplete="off" spellcheck="false" placeholder="Ask about anything on your screen…" />
+      <kbd>Enter</kbd>
+    </form>
+    <script>
+      const q = document.getElementById("q");
+      document.getElementById("f").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const text = q.value.trim();
+        q.value = "";
+        if (text) window.askBar.submit(text);
+        else window.askBar.hide();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          q.value = "";
+          window.askBar.hide();
+        }
+      });
+      window.askBar.onShow(() => {
+        q.focus();
+        q.select();
+      });
+    </script>
+  </body>
+</html>
