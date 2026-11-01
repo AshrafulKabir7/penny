@@ -1099,3 +1099,58 @@ kbd.space { min-width: 96px; }
   .js .reveal { opacity: 1; transform: none; }
   .hl path { stroke-dashoffset: 0; }
 }
+
+/* ------------------------------------------------------------------ creator */
+.creator {
+  display: grid;
+  grid-template-columns: minmax(200px, 300px) 1fr;
+  align-items: center;
+  gap: clamp(24px, 4vw, 48px);
+  max-width: 860px;
+  margin: 0 auto;
+  padding: clamp(16px, 2vw, 22px);
+}
+.creator-photo {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 18px;
+}
+.creator-body { padding: 4px clamp(4px, 2vw, 20px) 4px 0; }
+.card h3.creator-name { font-size: clamp(26px, 1.4rem + 1vw, 34px); letter-spacing: -0.035em; line-height: 1.15; }
+.card p.creator-role { margin-top: 6px; color: #2457a8; font-weight: 700; font-size: 16px; }
+.creator-quote {
+  margin: 18px 0 0;
+  padding: 14px 18px;
+  border-left: 4px solid var(--yellow);
+  border-radius: 0 14px 14px 0;
+  background: var(--yellow-soft);
+  font-family: var(--hand);
+  font-size: clamp(19px, 1rem + 0.5vw, 23px);
+  line-height: 1.35;
+  color: var(--ink-2);
+}
+.creator-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.creator-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px 0 13px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.2s;
+}
+.creator-links a:hover { background: var(--yellow-soft); transform: translateY(-1px); }
+.creator-links a:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.creator-links .ico { width: 18px; height: 18px; }
+
+@media (max-width: 720px) {
+  .creator { grid-template-columns: 1fr; max-width: 440px; }
+  .creator-body { padding: 0 6px 6px; }
+}
