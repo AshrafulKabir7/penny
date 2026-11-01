@@ -1,0 +1,14 @@
+{"op":"space","w":1600,"h":900}
+{"op":"say","text":"“Shared” means every output cell reuses the same 3 by 3 filter, called K — it slides instead of using new weights."}
+{"op":"circle","box":[813,412,947,459]}
+{"op":"say","text":"Look at the diagram: this red 3 by 3 patch reads nine numbers and produces one green output."}
+{"op":"circle","box":[483,345,568,425]}
+{"op":"arrow","from":[660,300],"to":[597,388],"text":"same K, moved"}
+{"op":"say","text":"Slide that same patch right and down, and each new output uses those identical nine weights."}
+{"op":"card","id":"c1","box":[960,470,1520,780],"kicker":"parameter sharing","title":"One K, many outputs"}
+{"op":"row","card":"c1","items":[{"box":"5 × 5 input","color":"blue"},{"arrow":"slide K"},{"box":"3 × 3 map","color":"green"}]}
+{"op":"row","card":"c1","items":[{"text":"K = 9 weights"}]}
+{"op":"row","card":"c1","items":[{"text":"No sharing: 9 × 9 = 81 weights","color":"pink"}]}
+{"op":"row","card":"c1","items":[{"text":"Shared: just 9 weights","color":"green"}],"caption":"Fewer parameters, less overfitting"}
+{"op":"say","text":"So instead of eighty-one separate weights you learn nine, and the model gets far fewer parameters to train."}
+{"op":"highlight","box":[880,422,1100,430]}

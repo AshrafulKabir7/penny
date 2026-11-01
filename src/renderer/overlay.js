@@ -3,9 +3,10 @@
 import { OpStream } from "./engine/parser.js";
 import { Stage } from "./engine/stage.js";
 import { Mic, Speaker } from "./voice.js";
+import { Trail } from "./trail.js";
 
 const params = new URLSearchParams(location.search);
-const api = window.talky || demoApi();
+const api = window.penny || demoApi();
 let settings = { captions: true, muted: false };
 
 // ---------------------------------------------------------------- status pill
@@ -68,11 +69,15 @@ const stage = new Stage(document.getElementById("stage"), {
   onCaption: showCaption,
 });
 
-window.__talky = { stage }; // for poking at the stage from DevTools
+window.__penny = { stage }; // for poking at the stage from DevTools
+
+const trail = new Trail(document.body);
+window.__penny.trail = trail;
 
 const mic = new Mic({
   onLevel(level) {
     if (phase !== "listening") return;
+    trail.setLevel(level);
     bars.forEach((b, i) => (b.style.height = `${4 + Math.round(level * 12 * (0.6 + 0.4 * Math.sin(i * 1.7 + performance.now() / 120)))}px`));
   },
 });
@@ -84,15 +89,20 @@ function startAnswer({ question } = {}) {
   answerId++;
   stage.beginAnswer();
   stream = new OpStream((op) => {
-    if (phase === "thinking") setPhase("answering");
+    if (phase === "thinking") {
+      setPhase("answering");
+      trail.setMode(null);
+    }
     stage.enqueue(op);
   });
   setPhase("thinking", question ? `“${question}”` : "Thinking");
+  trail.setMode("thinking"); // dots by the cursor until the first drawing arrives
 }
 
 async function endAnswer() {
   const id = answerId;
   if (stream && stream.count === 0) {
+    trail.setMode(null);
     setPill("error", "The model answered without any drawing", { hideAfter: 4000 });
     phase = "idle";
     api.answerDone({ ops: 0 });
@@ -101,6 +111,7 @@ async function endAnswer() {
   await stage.finish();
   if (id !== answerId) return;
   setPhase("idle");
+  trail.setMode(null);
   api.answerDone({ ops: stream?.count ?? 0 });
 }
 
@@ -114,20 +125,29 @@ async function listen({ wake = false } = {}) {
     api.listenResult({ error: `mic: ${err.name} ${err.message}`, wake });
     return;
   }
-  if (mic.recording) mic.stop(false); // a "Hey Talky" check in progress gives way to the hotkey
+  if (mic.recording) mic.stop(false); // a "Hey Penny" check in progress gives way to the hotkey
   if (!wake) {
-    stage.beginAnswer(); // talking over Talky interrupts it
+    stage.beginAnswer(); // talking over Penny interrupts it
     setPhase("listening", "Listening");
+    trail.start();
   }
   const pcm = await mic.record(wake ? { silenceMs: 800, maxMs: 15000, noSpeechMs: 4000 } : {});
+  // The path the mouse took while the user talked, in window pixels; main maps it onto the screenshot.
+  const gesture = wake ? [] : trail.stop();
   if (!pcm) {
-    if (!wake) setPill("error", "Didn't hear anything", { hideAfter: 2200 });
+    if (!wake) {
+      trail.setMode(null);
+      setPill("error", "Didn't hear anything", { hideAfter: 2200 });
+    }
     phase = "idle";
     api.listenResult({ empty: true, wake });
     return;
   }
-  if (!wake) setPhase("transcribing", "Got it…");
-  api.listenResult({ pcm: pcm.buffer, wake }, [pcm.buffer]);
+  if (!wake) {
+    setPhase("transcribing", "Got it…");
+    trail.setMode("thinking");
+  }
+  api.listenResult({ pcm: pcm.buffer, wake, gesture, view: [window.innerWidth, window.innerHeight] }, [pcm.buffer]);
 }
 
 // ---------------------------------------------------------------- events from the main process
@@ -140,6 +160,8 @@ api.on("listen:hold", () => {
 });
 api.on("listen:cancel", () => {
   mic.stop(false);
+  trail.stop();
+  trail.setMode(null);
   setPhase("idle");
 });
 api.on("heard", ({ text }) => {
@@ -153,12 +175,17 @@ api.on("answer:space", ({ w, h }) => {
 api.on("answer:delta", (text) => stream?.push(text));
 api.on("answer:end", () => endAnswer());
 api.on("answer:error", ({ message }) => {
+  trail.setMode(null);
   setPill("error", message || "Something went wrong", { hideAfter: 6000 });
   phase = "idle";
 });
-api.on("status", ({ state, text, hideAfter }) => setPill(state, text, { hideAfter }));
+api.on("status", ({ state, text, hideAfter }) => {
+  if (state === "error") trail.setMode(null);
+  setPill(state, text, { hideAfter });
+});
 api.on("stage:clear", () => {
   stage.reset();
+  trail.setMode(null);
   hideCaption(0);
   setPhase("idle");
 });

@@ -1,4 +1,18 @@
 node_modules/
 out/
+
+# Your own data never goes in the repo: credentials, settings, logs, screenshots.
+# (Penny keeps its settings, log and debug captures in %APPDATA%\Penny, outside this folder.)
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+settings.json
+settings.local.json
 *.log
+debug/
 .cache/

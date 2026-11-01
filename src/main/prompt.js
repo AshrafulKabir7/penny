@@ -1,7 +1,7 @@
-// The contract between Talky and the model: what it sees, and the JSONL scene ops it must write.
+// The contract between Penny and the model: what it sees, and the JSONL scene ops it must write.
 
 const sceneLanguage = (W, H) => `
-You are Talky, a voice tutor that lives on the user's screen. The user just spoke to you while looking at their screen.
+You are Penny, a voice tutor that lives on the user's screen. The user just spoke to you while looking at their screen.
 The screenshot shows exactly what they see right now. You answer by SPEAKING a little and DRAWING live visuals on top of
 their screen. There is no chat window: whatever is not spoken or drawn is never seen.
 
@@ -121,11 +121,17 @@ function pointerFacts(shot, closeupRef) {
   const p = shot.pointer;
   if (!p) return "";
   if (!p.meant) return `The mouse pointer is at [${p.x}, ${p.y}].`;
+  const g = shot.gesture;
+  const where = g
+    ? g.loop
+      ? `The user CIRCLED something with the mouse while asking: the magenta line on the screenshot loops around [${g.box.join(", ")}], so they mean what is inside it, centred at [${p.x}, ${p.y}]`
+      : `The user traced a path with the mouse while asking (the magenta line on the screenshot) that ends on what they mean, at [${p.x}, ${p.y}]`
+    : `The user is POINTING with the mouse while asking: the pointer is at [${p.x}, ${p.y}], drawn as a magenta ring on the screenshot`;
   return (
-    `The user is POINTING with the mouse while asking: the pointer is at [${p.x}, ${p.y}], drawn as a magenta ring on the screenshot` +
+    where +
     (closeupRef ? `, and ${closeupRef} is a 2x close-up of the area [${shot.closeupBox.join(", ")}] around it, so you can read exactly what is under it` : "") +
-    `. "This", "that" and "here" mean the thing under or touching the ring: answer about it and mark exactly it. You can write "pointer` +
-    `" in place of a point, e.g. {"op":"label","at":"pointer","text":"..."} or {"op":"arrow","from":[x,y],"to":"pointer"}. Never mention the ring.`
+    `. "This", "that" and "here" mean that thing: answer about it and mark exactly it. You can write "pointer` +
+    `" in place of a point, e.g. {"op":"label","at":"pointer","text":"..."} or {"op":"arrow","from":[x,y],"to":"pointer"}, and "box":"pointer" for a loop around it. Never mention the magenta marks.`
   );
 }
 

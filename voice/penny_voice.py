@@ -1,7 +1,7 @@
-"""Talky's voice worker: Whisper speech-to-text and edge-tts text-to-speech, over JSON lines on stdin/stdout.
+"""Penny's voice worker: Whisper speech-to-text and edge-tts text-to-speech, over JSON lines on stdin/stdout.
 
 Requests (one JSON object per line):
-  {"id": 1, "op": "stt", "path": "clip.f32", "language": "en", "prompt": "Hey Talky,"}   16 kHz mono float32 samples
+  {"id": 1, "op": "stt", "path": "clip.f32", "language": "en", "prompt": "Hey Penny,"}   16 kHz mono float32 samples
   {"id": 2, "op": "tts", "text": "Hello", "voice": "en-US-AndrewMultilingualNeural", "out": "a.mp3"}
 Replies: {"id": 1, "text": "..."} / {"id": 2, "path": "a.mp3"} / {"id": n, "error": "..."}
 Events: {"event": "stt_ready"} / {"event": "stt_failed", "error": "..."}
@@ -33,7 +33,7 @@ def load_model():
 
         import numpy as np
 
-        model = whisper.load_model(os.environ.get("TALKY_WHISPER_MODEL", "base"))
+        model = whisper.load_model(os.environ.get("PENNY_WHISPER_MODEL", "base"))
         # The first transcription is several times slower than the rest; pay that cost now, not on the first question.
         model.transcribe(np.zeros(16000, dtype=np.float32), language="en", fp16=False, temperature=0.0)
         emit({"event": "stt_ready"})

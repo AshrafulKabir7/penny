@@ -57,8 +57,11 @@ export class Stage {
   box(b, fallback = [400, 400, 600, 600]) {
     const { w, h } = this.space;
     if (b === "pointer" && this.pointer) {
-      const [x, y] = this.point("pointer");
-      return [x - 70, y - 22, x + 70, y + 22];
+      if (Array.isArray(this.pointer.box)) b = this.pointer.box; // the area the user circled
+      else {
+        const [x, y] = this.point("pointer");
+        return [x - 70, y - 22, x + 70, y + 22];
+      }
     }
     const src = Array.isArray(b) && b.length >= 4 ? b : fallback.map((v, i) => (v / 1000) * (i % 2 ? h : w));
     const [ax, ay] = this.point([src[0], src[1]]);

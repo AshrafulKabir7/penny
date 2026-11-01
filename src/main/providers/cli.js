@@ -13,7 +13,7 @@ function onPath(name) {
 
 /** A real Node binary; Electron's own binary can stand in when run as node. */
 function nodeCommand() {
-  const candidates = [process.env.TALKY_NODE, join(process.env.ProgramFiles || "C:\\Program Files", "nodejs", "node.exe"), onPath("node")];
+  const candidates = [process.env.PENNY_NODE, join(process.env.ProgramFiles || "C:\\Program Files", "nodejs", "node.exe"), onPath("node")];
   const found = candidates.find((p) => p && existsSync(p));
   if (found) return { file: found, env: {} };
   return { file: process.execPath, env: { ELECTRON_RUN_AS_NODE: "1" } };
@@ -44,7 +44,7 @@ function killTree(child) {
 
 /** An empty folder for the CLIs to run in, so nothing of the user's is within their reach. */
 function workDir(...parts) {
-  const dir = join(process.env.TALKY_WORK_DIR || join(tmpdir(), "talky-cli"), ...parts);
+  const dir = join(process.env.PENNY_WORK_DIR || join(tmpdir(), "penny-cli"), ...parts);
   mkdirSync(dir, { recursive: true });
   return dir;
 }

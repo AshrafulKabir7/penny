@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "talky-preview",
+      "name": "penny-preview",
       "runtimeExecutable": "node",
       "runtimeArgs": ["tools/serve.mjs"],
       "port": 5199

@@ -19,4 +19,4 @@ createServer((req, res) => {
   }
   res.writeHead(200, { "content-type": TYPES[extname(file)] || "application/octet-stream", "cache-control": "no-store" });
   createReadStream(file).pipe(res);
-}).listen(PORT, "127.0.0.1", () => console.log(`talky preview on http://127.0.0.1:${PORT}/src/renderer/overlay.html`));
+}).listen(PORT, "127.0.0.1", () => console.log(`penny preview on http://127.0.0.1:${PORT}/src/renderer/overlay.html`));

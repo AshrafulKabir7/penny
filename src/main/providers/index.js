@@ -1,4 +1,4 @@
-// The models Talky can use, and a factory for the provider behind an id like "cmd:deepseek/deepseek-v4.1-flash".
+// The models Penny can use, and a factory for the provider behind an id like "cmd:deepseek/deepseek-v4.1-flash".
 
 const { spawn } = require("node:child_process");
 const { AcpProvider } = require("./acp");

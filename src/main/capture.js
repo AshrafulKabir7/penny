@@ -1,4 +1,4 @@
-// Screen capture for the model: the display under the cursor, without Talky's own drawings in it.
+// Screen capture for the model: the display under the cursor, without Penny's own drawings in it.
 
 const { desktopCapturer, nativeImage, screen } = require("electron");
 
@@ -12,7 +12,7 @@ function activeDisplay() {
  * Returns { jpeg, width, height, imageWidth, imageHeight, displayId }. `width`/`height` are the display's real pixels;
  * the JPEG is at most 1600 px wide, which is plenty for reading text and keeps the prompt small. The capturer scales it
  * directly, which is much faster than grabbing full resolution and resizing.
- * `hideDrawings` (optional) is an async function that hides Talky's drawings and returns a function that shows them again.
+ * `hideDrawings` (optional) is an async function that hides Penny's drawings and returns a function that shows them again.
  */
 async function captureScreen({ display = activeDisplay(), hideDrawings, full = false, format = "jpeg" } = {}) {
   const { width, height } = display.size;
@@ -41,14 +41,14 @@ async function captureScreen({ display = activeDisplay(), hideDrawings, full = f
  * what is under the pointer (a 1600 px screenshot is often shrunk further by the model, and small text is lost).
  * `pt` is in screenshot pixels. Returns { jpeg, closeup, closeupBox }.
  */
-function markPointer(shot, pt) {
+function markPointer(shot, pt, gesture) {
   const img = nativeImage.createFromBuffer(shot.jpeg);
   const { width, height } = img.getSize();
   const px = img.toBitmap(); // BGRA
-  const paint = (r0, r1, [r, g, b]) => {
-    for (let y = Math.max(0, pt.y - r1); y <= Math.min(height - 1, pt.y + r1); y++) {
-      for (let x = Math.max(0, pt.x - r1); x <= Math.min(width - 1, pt.x + r1); x++) {
-        const d = Math.hypot(x - pt.x, y - pt.y);
+  const paint = (cx, cy, r0, r1, [r, g, b]) => {
+    for (let y = Math.max(0, Math.floor(cy - r1)); y <= Math.min(height - 1, cy + r1); y++) {
+      for (let x = Math.max(0, Math.floor(cx - r1)); x <= Math.min(width - 1, cx + r1); x++) {
+        const d = Math.hypot(x - cx, y - cy);
         if (d < r0 || d > r1) continue;
         const i = (y * width + x) * 4;
         px[i] = b;
@@ -58,15 +58,32 @@ function markPointer(shot, pt) {
       }
     }
   };
-  paint(11, 20, [255, 255, 255]); // halo so the ring shows on any background
-  paint(13, 18, [236, 0, 170]);
-  paint(0, 2.5, [236, 0, 170]);
+  const stroke = (pts, radius, color) => {
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, ay] = pts[i - 1];
+      const [bx, by] = pts[i];
+      const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 2));
+      for (let s = 0; s <= steps; s++) paint(ax + ((bx - ax) * s) / steps, ay + ((by - ay) * s) / steps, 0, radius, color);
+    }
+  };
+  if (gesture) {
+    // The path the user traced with the mouse, as they saw it: white halo, magenta line.
+    stroke(gesture.points, 4.5, [255, 255, 255]);
+    stroke(gesture.points, 2.5, [236, 0, 170]);
+  }
+  if (!gesture?.loop) {
+    paint(pt.x, pt.y, 11, 20, [255, 255, 255]); // halo so the ring shows on any background
+    paint(pt.x, pt.y, 13, 18, [236, 0, 170]);
+    paint(pt.x, pt.y, 0, 2.5, [236, 0, 170]);
+  }
   const marked = nativeImage.createFromBitmap(px, { width, height });
-  const cw = Math.min(width, 440);
-  const ch = Math.min(height, 260);
+  // The close-up covers the circled area when there is one.
+  const span = gesture?.loop ? [gesture.box[2] - gesture.box[0], gesture.box[3] - gesture.box[1]] : [0, 0];
+  const cw = Math.min(width, Math.max(440, Math.round(span[0] * 1.4)));
+  const ch = Math.min(height, Math.max(260, Math.round(span[1] * 1.4)));
   const cx = Math.max(0, Math.min(width - cw, Math.round(pt.x - cw / 2)));
   const cy = Math.max(0, Math.min(height - ch, Math.round(pt.y - ch / 2)));
-  const closeup = marked.crop({ x: cx, y: cy, width: cw, height: ch }).resize({ width: cw * 2, quality: "best" });
+  const closeup = marked.crop({ x: cx, y: cy, width: cw, height: ch }).resize({ width: Math.min(cw * 2, 1400), quality: "best" });
   return { jpeg: marked.toJPEG(85), closeup: closeup.toJPEG(85), closeupBox: [cx, cy, cx + cw, cy + ch] };
 }
 

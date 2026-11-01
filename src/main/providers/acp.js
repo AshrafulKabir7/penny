@@ -84,7 +84,7 @@ class AcpProvider extends EventEmitter {
     const s = await this._rpc("session/new", { cwd: this.dir, mcpServers: [] });
     const id = s.sessionId;
     await this._rpc("session/set_config_option", { sessionId: id, configId: "model", value: this.model });
-    // Thinking first costs 15-20 s before the first word; Talky needs to start talking at once.
+    // Thinking first costs 15-20 s before the first word; Penny needs to start talking at once.
     await this._rpc("session/set_config_option", { sessionId: id, configId: "effort", value: this.effort }).catch(() => {});
     await this._rpc("session/set_mode", { sessionId: id, modeId: "plan" }).catch(() => {});
     return { id, turns: 0 };
@@ -118,7 +118,7 @@ class AcpProvider extends EventEmitter {
       return;
     }
     if (msg.method === "session/request_permission" && msg.id != null) {
-      // Talky's model only answers; it never gets to run tools.
+      // Penny's model only answers; it never gets to run tools.
       this.child?.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: { outcome: { outcome: "cancelled" } } })}\n`);
       return;
     }

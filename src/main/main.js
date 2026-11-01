@@ -1,4 +1,4 @@
-// Talky's main process: the overlay window, hotkeys, tray, and the loop from question to drawn answer.
+// Penny's main process: the overlay window, hotkeys, tray, and the loop from question to drawn answer.
 
 const { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, screen, session, shell, Tray } = require("electron");
 const { appendFileSync, mkdirSync, writeFileSync } = require("node:fs");
@@ -6,14 +6,15 @@ const { createServer } = require("node:http");
 const { join } = require("node:path");
 const settings = require("./settings");
 const { captureScreen, activeDisplay, markPointer } = require("./capture");
-const { PointerTracker, POINTING, toImage } = require("./pointer");
+const { PointerTracker, POINTING, toImage, gestureOnShot } = require("./pointer");
 const { createProvider, discoverModels, SUGGESTED, parseModelId } = require("./providers");
 const { VoiceWorker } = require("./voice");
 const { trayIconPng } = require("./icon");
 
 const DEV = process.argv.includes("--dev");
 const FOLLOW_UP_MS = 5 * 60_000;
-const WAKE = /^\W*(?:hey|hi|hay|ok|okay|a)[\s,.!]+(?:talky|talkie|talki|tokey|toki|tacky|turkey|taki|talk he|talk e)\b[\s,.!?]*/i;
+// "Hey Penny", including the ways Whisper writes it when it mishears.
+const WAKE = /^\W*(?:hey|hi|hay|ok|okay|a)[\s,.!]+(?:penny|pennie|penni|penney|penne|peni|benny|bennie|pen e)\b[\s,.!?]*/i;
 
 let cfg;
 let overlay = null;
@@ -33,8 +34,9 @@ let extraModels = [];
 let wakeLoopOn = false;
 const pointer = new PointerTracker();
 let pointerAt = null; // where the user pointed while asking (screen DIP)
+let gestureAt = null; // the mouse path traced while asking: { points, view } in overlay pixels
 
-const logFile = () => join(app.getPath("userData"), "talky.log");
+const logFile = () => join(app.getPath("userData"), "penny.log");
 function log(line) {
   const text = `${new Date().toISOString().slice(11, 19)} ${line}`;
   console.log(text);
@@ -92,7 +94,12 @@ function createOverlay() {
   overlay.setIgnoreMouseEvents(true, { forward: true });
   applyContentProtection();
   overlay.loadFile(join(__dirname, "..", "renderer", "overlay.html"));
-  overlay.once("ready-to-show", () => overlay.showInactive());
+  overlay.once("ready-to-show", () => {
+    overlay.showInactive();
+    // Windows clamps a new window to the work area (above the taskbar). The overlay has to cover the same area as the
+    // screenshot or every mark lands too high, so it is stretched over the whole display once it is up.
+    overlay.setBounds(b);
+  });
   overlay.on("closed", () => (overlay = null));
 }
 
@@ -141,7 +148,7 @@ function startProvider() {
   const started = Date.now();
   Promise.resolve(provider.warm())
     .then(() => {
-      if (overlayReady) status("idle", `Talky is ready · ${hotkeyLabel(keys.talk)} to talk`, 3500);
+      if (overlayReady) status("idle", `Penny is ready · ${hotkeyLabel(keys.talk)} to talk`, 3500);
       log(`[model] warm after ${((Date.now() - started) / 1000).toFixed(1)}s`);
     })
     .catch((err) => {
@@ -154,13 +161,13 @@ function friendlyError(err, parsed = parseModelId(cfg.model)) {
   const m = String(err?.message || err);
   const cli = parsed?.kind === "agy" ? "Antigravity" : "Command Code";
   if (/MODEL_NOT_IN_PLAN|not in (your )?plan/i.test(m)) return `${parsed?.model} is not on your ${cli} plan. Pick another model in the tray menu.`;
-  if (/ENOENT|not recognized|cannot find/i.test(m)) return `${cli} CLI not found. Install it and sign in, then restart Talky.`;
+  if (/ENOENT|not recognized|cannot find/i.test(m)) return `${cli} CLI not found. Install it and sign in, then restart Penny.`;
   if (/401|unauthori[sz]ed|not logged in|login/i.test(m)) return parsed?.kind === "agy" ? "Sign in to Antigravity (run agy once)." : "Sign in to Command Code: command-code logout, then command-code login.";
   if (/stopped|exited/i.test(m)) return `${cli} stopped. Ask again to restart it.`;
   return m.length > 140 ? `${m.slice(0, 140)}…` : m;
 }
 
-async function ask(question, shotPromise, pointedAt = null) {
+async function ask(question, shotPromise, pointedAt = null, gesture = null) {
   question = String(question || "").trim();
   if (!question) return;
   const id = ++askSeq;
@@ -177,7 +184,7 @@ async function ask(question, shotPromise, pointedAt = null) {
     let shot = await shotPromise;
     if (id !== askSeq) return;
     send("answer:space", { w: shot.imageWidth, h: shot.imageHeight });
-    shot = withPointer(shot, pointedAt, question);
+    shot = withPointer(shot, pointedAt, question, gesture);
     send("answer:pointer", shot.pointer);
     const followUp = visualsOnScreen || Date.now() - lastAnswerAt < FOLLOW_UP_MS;
     if (!followUp && provider.turns > 0) await provider.newTopic();
@@ -213,7 +220,7 @@ async function ask(question, shotPromise, pointedAt = null) {
 
 // ---------------------------------------------------------------- talking
 
-/** Captures the screen for the model with Talky's drawings hidden for that moment (the status pill stays). */
+/** Captures the screen for the model with Penny's drawings hidden for that moment (the status pill stays). */
 function shoot() {
   const started = Date.now();
   const shot = captureScreen({ hideDrawings: visualsOnScreen ? hideDrawings : null });
@@ -225,15 +232,19 @@ function shoot() {
  * Adds where the user pointed. When the question says "this"/"here", the pointer is ringed on the screenshot and a
  * close-up of that spot goes along, and the overlay snaps nearby marks onto it.
  */
-function withPointer(shot, pointedAt, question) {
-  const pt = toImage(pointedAt, shot);
+function withPointer(shot, pointedAt, question, gestureRaw) {
+  // A traced path (circling something, or a stroke ending on it) counts as pointing even without "this".
+  const gesture = gestureOnShot(gestureRaw, shot);
+  const pt = gesture ? gesture.target : toImage(pointedAt, shot);
   if (!pt) return { ...shot, pointer: null };
-  const meant = POINTING.test(question);
+  const meant = !!gesture || POINTING.test(question);
   if (!meant) return { ...shot, pointer: { ...pt, meant } };
   try {
-    const marked = markPointer(shot, pt);
-    log(`[pointer] "${question}" points at ${pt.x},${pt.y}`);
-    return { ...shot, jpeg: marked.jpeg, closeup: marked.closeup, closeupBox: marked.closeupBox, pointer: { ...pt, meant } };
+    const marked = markPointer(shot, pt, gesture);
+    log(`[pointer] "${question}" ${gesture ? `${gesture.loop ? "circles" : "traces to"} ${gesture.box.join(",")}` : `points at ${pt.x},${pt.y}`}`);
+    const pointer = { ...pt, meant, ...(gesture?.loop ? { box: gesture.box } : {}) };
+    const gestureInfo = gesture ? { loop: gesture.loop, box: gesture.box } : null;
+    return { ...shot, jpeg: marked.jpeg, closeup: marked.closeup, closeupBox: marked.closeupBox, pointer, gesture: gestureInfo };
   } catch (err) {
     log(`[pointer] ${err.message}`);
     return { ...shot, pointer: { ...pt, meant } };
@@ -277,7 +288,14 @@ function onTalkKey() {
     send("listen:hold");
   }
   clearTimeout(talkKey.stopTimer);
+  armKeyRelease(Date.now());
+}
+
+/** Stops listening once key events go quiet. A timer that fires late means the main thread was stalled and the repeats
+ * queued meanwhile have not been seen yet, so it waits another round instead of taking that as a release. */
+function armKeyRelease(armedAt) {
   talkKey.stopTimer = setTimeout(() => {
+    if (Date.now() - armedAt > KEY_QUIET_MS + 150) return armKeyRelease(Date.now());
     talkKey.held = false;
     if (listening) send("listen:stop");
   }, KEY_QUIET_MS);
@@ -302,6 +320,7 @@ async function onListenResult(payload) {
   if (!wake) {
     listening = false;
     pointerAt = pointer.stop();
+    gestureAt = payload?.gesture?.length ? { points: payload.gesture, view: payload.view } : null;
   }
   if (!payload?.pcm) {
     if (wake) setTimeout(wakeTick, 200);
@@ -310,7 +329,7 @@ async function onListenResult(payload) {
   }
   let text = "";
   try {
-    text = await voice.transcribe(payload.pcm, { language: cfg.language, prompt: wake ? "Hey Talky," : undefined });
+    text = await voice.transcribe(payload.pcm, { language: cfg.language, prompt: wake ? "Hey Penny," : undefined });
   } catch (err) {
     log(`[stt] ${err.message}`);
     if (!wake) status("error", err.message, 6000);
@@ -322,20 +341,32 @@ async function onListenResult(payload) {
     const m = WAKE.exec(text);
     if (!m) return setTimeout(wakeTick, 100);
     const rest = text.slice(m[0].length).trim();
-    if (rest.split(/\s+/).length < 2) return startListening(); // just "Hey Talky": listen for the question
+    if (rest.split(/\s+/).length < 2) return startListening(); // just "Hey Penny": listen for the question
     send("heard", { text: rest });
     return ask(rest, shoot(), screen.getCursorScreenPoint());
   }
-  if (!text || /^[\s.,!?]*$/.test(text) || /^(thank you\.?|you)$/i.test(text.trim())) {
+  if (!text || /^[\s.,!?]*$/.test(text) || /^(thank you\.?|you)$/i.test(text.trim()) || looksLikeNoise(text)) {
+    if (text) log(`[stt] ignored as background noise`);
     status("error", "Didn't catch that", 2200);
     setWake(true);
     return;
   }
   send("heard", { text });
-  ask(text, pendingShot || shoot(), pointerAt);
+  ask(text, pendingShot || shoot(), pointerAt, gestureAt);
 }
 
-// "Hey Talky": while idle, the overlay keeps recording short utterances and the worker checks each for the phrase.
+/**
+ * Whisper turns background audio (a TV, a video) into text too. Two telltale shapes: one sentence repeated over and
+ * over, and a lone word. A real question has a few words and does not repeat itself.
+ */
+function looksLikeNoise(text) {
+  const words = text.toLowerCase().match(/[\p{L}\p{N}']+/gu) || [];
+  if (words.length < 2) return true;
+  const sentences = text.split(/[.!?]+/).map((x) => x.trim().toLowerCase()).filter(Boolean);
+  return sentences.length >= 3 && new Set(sentences).size === 1;
+}
+
+// "Hey Penny": while idle, the overlay keeps recording short utterances and the worker checks each for the phrase.
 function setWake(on) {
   wakeLoopOn = on && cfg.wakeWord && overlayReady;
   if (wakeLoopOn && !listening && !answering) wakeTick();
@@ -361,7 +392,7 @@ function setVisuals(on) {
   visualsOnScreen = on;
   const key = cfg.clearHotkey;
   if (!key) return;
-  // Esc belongs to the user's apps except while Talky has something on screen.
+  // Esc belongs to the user's apps except while Penny has something on screen.
   if (on && !globalShortcut.isRegistered(key)) globalShortcut.register(key, clearScreen);
   if (!on && globalShortcut.isRegistered(key)) globalShortcut.unregister(key);
 }
@@ -434,7 +465,7 @@ function buildTray() {
     tray = new Tray(nativeImage.createFromBuffer(trayIconPng(32), { scaleFactor: 2 }));
     tray.on("click", () => tray.popUpContextMenu());
   }
-  tray.setToolTip(`Talky · ${hotkeyLabel(keys.talk)} to talk · ${hotkeyLabel(keys.type)} to type`);
+  tray.setToolTip(`Penny · ${hotkeyLabel(keys.talk)} to talk · ${hotkeyLabel(keys.type)} to type`);
   const modelItem = (m) => ({ label: m.name || m.id, type: "radio", checked: cfg.model === m.id, click: () => change({ model: m.id }) });
   const known = new Set(SUGGESTED.map((m) => m.id));
   const more = extraModels.filter((id) => !known.has(id));
@@ -471,11 +502,11 @@ function buildTray() {
       ],
     },
     { label: "Show captions", type: "checkbox", checked: cfg.captions, click: (i) => change({ captions: i.checked }) },
-    { label: "Listen for “Hey Talky”", type: "checkbox", checked: cfg.wakeWord, click: (i) => change({ wakeWord: i.checked }) },
-    { label: "Hide Talky from screen recordings", type: "checkbox", checked: cfg.hideFromCapture, click: (i) => change({ hideFromCapture: i.checked }) },
+    { label: "Listen for “Hey Penny”", type: "checkbox", checked: cfg.wakeWord, click: (i) => change({ wakeWord: i.checked }) },
+    { label: "Hide Penny from screen recordings", type: "checkbox", checked: cfg.hideFromCapture, click: (i) => change({ hideFromCapture: i.checked }) },
     { type: "separator" },
     { label: "Open log", click: () => shell.openPath(logFile()) },
-    { label: "Quit Talky", click: () => app.quit() },
+    { label: "Quit Penny", click: () => app.quit() },
   ]);
   tray.setContextMenu(menu);
 }
@@ -488,7 +519,7 @@ function wireIpc() {
     // The first capture after launch is several times slower than the rest; get it out of the way now.
     setTimeout(() => captureScreen().catch(() => {}), 1500);
     sendSettings();
-    status("idle", `Talky · ${hotkeyLabel(keys.talk)} to talk, ${hotkeyLabel(keys.type)} to type`, 4000);
+    status("idle", `Penny · ${hotkeyLabel(keys.talk)} to talk, ${hotkeyLabel(keys.type)} to type`, 4000);
     setWake(true);
   });
   ipcMain.on("overlay:interactive", (_e, on) => overlay?.setIgnoreMouseEvents(!on, { forward: true }));
@@ -513,7 +544,7 @@ function wireIpc() {
 function startDevServer() {
   const port = Number(cfg.devPort) || 8791;
   createServer(async (req, res) => {
-    const url = new URL(req.url, "http://talky");
+    const url = new URL(req.url, "http://penny");
     const body = await new Promise((resolve) => {
       const chunks = [];
       req.on("data", (c) => chunks.push(c));
@@ -557,6 +588,12 @@ function startDevServer() {
         const shot = await captureScreen({ full: true, format: "png" });
         return res.writeHead(200, { "content-type": "image/png" }).end(shot.png);
       }
+      if (req.method === "GET" && url.pathname === "/overlay") {
+        const state = await overlay.webContents.executeJavaScript(
+          "JSON.stringify({ trail: { recording: __penny.trail.recording, points: __penny.trail.points.length, path: __penny.trail.path.length, canvas: [__penny.trail.canvas.width, __penny.trail.canvas.height], mode: __penny.trail.mode, running: __penny.trail.running, frames: __penny.trail.frames || 0, error: __penny.trail.lastError || null }, view: [innerWidth, innerHeight], items: __penny.stage.items.length })",
+        );
+        return res.writeHead(200, { "content-type": "application/json" }).end(state);
+      }
       if (req.method === "GET" && url.pathname === "/state") {
         return json(200, { model: cfg.model, ready: !!provider, answering, listening, visualsOnScreen, sttReady: voice?.sttReady, sttError: voice?.sttError, ttsBroken: voice?.ttsBroken });
       }
@@ -572,10 +609,10 @@ function startDevServer() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on("second-instance", () => status("idle", "Talky is already running", 2500));
+  app.on("second-instance", () => status("idle", "Penny is already running", 2500));
   app.whenReady().then(() => {
     cfg = settings.load();
-    log(`---- Talky ${app.getVersion()} starting`);
+    log(`---- Penny ${app.getVersion()} starting`);
     session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(["media", "audioCapture", "speaker-selection"].includes(permission)));
     session.defaultSession.setPermissionCheckHandler((_wc, permission) => ["media", "audioCapture", "speaker-selection"].includes(permission));
     voice = new VoiceWorker({ log, python: cfg.python || undefined, whisperModel: cfg.whisperModel });

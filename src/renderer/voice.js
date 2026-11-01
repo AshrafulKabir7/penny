@@ -85,7 +85,7 @@ class Tap extends AudioWorkletProcessor {
     return true;
   }
 }
-registerProcessor("talky-tap", Tap);
+registerProcessor("penny-tap", Tap);
 `;
 
 export class Mic {
@@ -104,7 +104,7 @@ export class Mic {
     const url = URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }));
     await this.ctx.audioWorklet.addModule(url);
     const src = this.ctx.createMediaStreamSource(this.stream);
-    this.node = new AudioWorkletNode(this.ctx, "talky-tap");
+    this.node = new AudioWorkletNode(this.ctx, "penny-tap");
     src.connect(this.node);
     let block = new Float32Array(1600);
     let fill = 0;

@@ -1,6 +1,6 @@
-# Talky: plan
+# Penny: plan
 
-Talky is a Windows desktop app that does what the HeyClicky "real-time graphics" demo shows. You ask a question out
+Penny is a Windows desktop app that does what the HeyClicky "real-time graphics" demo shows. You ask a question out
 loud about whatever is on your screen, and the answer comes back as a short spoken explanation while diagrams,
 labels, sticky notes and interactive 3D scenes are drawn live on top of your screen. There is no chat window.
 
@@ -22,10 +22,10 @@ Source: `linkedin-video-735kbps.mp4` (2:27, 1280×720), frame-by-frame plus a Wh
 | 1:36–2:05 | Raspberry Pi product page. "How does a Raspberry Pi work?" 3D board with *USB ports, GPIO, Processor, RAM, microSD*. Follow-up: "How do I attach a camera?" The camera module and ribbon cable animate into the port, a sticky note says *Power off, unplug first* | Animated assembly (parts move), sticky notes, follow-ups |
 | UI details | A pill under the notch reads **Listening** / **Speaking**. A small yellow pen cursor glides to wherever something is being drawn. Handwritten font, pastel blue/pink/green/yellow boxes, cream card with a faint grid. | Status pill, pen cursor, visual style |
 
-## 2. How Talky does it
+## 2. How Penny does it
 
 ```
- hotkey / "Hey Talky"            Electron main process                         CLI model (warm, persistent)
+ hotkey / "Hey Penny"            Electron main process                         CLI model (warm, persistent)
  ┌──────────────┐  PCM 16 kHz  ┌──────────────────────────┐  text + JPEG   ┌──────────────────────────────┐
  │ overlay      │ ───────────► │ voice worker (Whisper)   │ ─────────────► │ Command Code ACP session     │
  │ (transparent,│              │ screen capture           │                │   (image sent inline)        │
@@ -37,8 +37,8 @@ Source: `linkedin-video-735kbps.mp4` (2:27, 1280×720), frame-by-frame plus a Wh
 ```
 
 1. **Trigger**: `Ctrl+Alt+Space` starts listening (press again or stop talking to finish), `Ctrl+Alt+T` opens a
-   one-line "type it" bar, and an optional "Hey Talky" wake word can be turned on from the tray.
-2. **Context**: when you start talking, Talky hides its own overlay for one frame and captures the screen
+   one-line "type it" bar, and an optional "Hey Penny" wake word can be turned on from the tray.
+2. **Context**: when you start talking, Penny hides its own overlay for one frame and captures the screen
    (downscaled to 1600 px JPEG).
 3. **Speech to text**: a persistent Python worker keeps Whisper `base` loaded and transcribes the 16 kHz clip (~1–2 s on CPU).
 4. **Model**: the question and the screenshot go to a CLI that is already running, so there is no start-up cost.
@@ -105,7 +105,7 @@ M1–M7 are built and were checked on this laptop with the real app on the real 
 - The neural voice (edge-tts) speaks, in step with the drawings.
 - The Antigravity provider works (Gemini 3.8 Flash Low, about 10 s per answer).
 
-Not yet checked by a person: speaking a real question into the mic with the hotkey, the "Hey Talky" wake word in a
+Not yet checked by a person: speaking a real question into the mic with the hotkey, the "Hey Penny" wake word in a
 real room, and drag-to-orbit on a 3D scene.
 
 What we learned while building it:
@@ -114,7 +114,7 @@ What we learned while building it:
 - Fast models get parent-relative 3D maths wrong. Positions are always scene coordinates, spin axes are scene axes,
   and round parts take `"axis":"x"` instead of rotations.
 - Command Code's `effort: off` is what makes it real-time. With thinking left on, the first word takes 15–20 s.
-- `Ctrl+Alt+Space` is taken on this machine, so Talky falls back to `Ctrl+Shift+Space`.
+- `Ctrl+Alt+Space` is taken on this machine, so Penny falls back to `Ctrl+Shift+Space`.
 
 ### Round 2 (after the first hands-on test)
 
@@ -141,6 +141,21 @@ What came up when it was used for real, and what changed:
   the control server.
 - **Whisper only loaded when a request arrived.** On Windows, a blocking stdin read held up the PyTorch import in
   another thread. It now loads before the stdin reader starts, and is ready about 14 s after launch.
+
+### Round 3: the cursor trail
+
+The demo shows a fading yellow ink trail following the mouse while Clicky listens, with a sound-level badge riding next
+to the cursor. Penny now does the same (`src/renderer/trail.js`). The traced path goes back with the recording and is
+drawn onto the screenshot. A loop counts as "what's inside", a stroke as "where it ends", and both count as pointing.
+
+Also fixed in this round:
+- The overlay was clamped to the work area (1536×816 rather than 1536×864), so every mark landed up to ~45 px too high
+  near the bottom. It is now stretched over the whole display after it is shown.
+- A key-release timer that fires late (a stalled main thread) no longer ends push-to-talk early.
+- Whisper transcripts that are a lone word or one sentence repeated (background TV) are ignored.
+
+Checked in the real app with injected mouse movement while the key is held (`/talkkey`), and with `/overlay` reporting
+the trail's state. The user's own circle gesture ("explain me this further") came through as a circle.
 
 ## 5. Risks and what we do about them
 

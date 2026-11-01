@@ -5,7 +5,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 const CHANNELS = ["listen:start", "listen:stop", "listen:cancel", "listen:hold", "answer:pointer", "heard", "answer:start", "answer:space", "answer:delta", "answer:end", "answer:error",
   "status", "stage:clear", "settings", "ops:play", "capture:prepare", "capture:done"];
 
-contextBridge.exposeInMainWorld("talky", {
+contextBridge.exposeInMainWorld("penny", {
   on(channel, fn) {
     if (CHANNELS.includes(channel)) ipcRenderer.on(channel, (_e, payload) => fn(payload));
   },

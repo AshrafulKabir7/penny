@@ -37,7 +37,14 @@ const size = jpegSize(jpeg);
 const shot = { jpeg, ...size, imageWidth: size.width, imageHeight: size.height, title: "" };
 // POINTER="x,y" (screenshot pixels) and CLOSEUP=<jpg> simulate the user pointing while asking; the screenshot should
 // already have the pointer marked on it.
-if (process.env.POINTER) {
+// GESTURE=<json> (written by Penny's markPointer test) simulates circling something: target, box, loop, closeupBox.
+if (process.env.GESTURE) {
+  const g = JSON.parse(readFileSync(process.env.GESTURE, "utf8"));
+  shot.pointer = { ...g.target, meant: true, ...(g.loop ? { box: g.box } : {}) };
+  shot.gesture = { loop: g.loop, box: g.box };
+  shot.closeupBox = g.closeupBox;
+  if (process.env.CLOSEUP) shot.closeup = readFileSync(process.env.CLOSEUP);
+} else if (process.env.POINTER) {
   const [x, y] = process.env.POINTER.split(",").map(Number);
   shot.pointer = { x, y, meant: true };
   if (process.env.CLOSEUP) {

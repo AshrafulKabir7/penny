@@ -6,7 +6,7 @@ const { join } = require("node:path");
 const { tmpdir } = require("node:os");
 const { pathToFileURL } = require("node:url");
 
-const SCRIPT = join(__dirname, "..", "..", "voice", "talky_voice.py");
+const SCRIPT = join(__dirname, "..", "..", "voice", "penny_voice.py");
 
 class VoiceWorker {
   constructor({ log = () => {}, python, whisperModel = "base" }) {
@@ -19,7 +19,7 @@ class VoiceWorker {
     this.sttReady = false;
     this.sttError = null;
     this.ttsBroken = false;
-    this.dir = join(tmpdir(), "talky-voice");
+    this.dir = join(tmpdir(), "penny-voice");
     mkdirSync(this.dir, { recursive: true });
     for (const f of readdirSync(this.dir)) rmSync(join(this.dir, f), { force: true });
   }
@@ -29,7 +29,7 @@ class VoiceWorker {
     const [file, ...pre] = this.python ? [this.python] : process.platform === "win32" ? ["py", "-3"] : ["python3"];
     const child = spawn(file, [...pre, "-u", SCRIPT], {
       windowsHide: true,
-      env: { ...process.env, TALKY_WHISPER_MODEL: this.whisperModel, PYTHONIOENCODING: "utf-8" },
+      env: { ...process.env, PENNY_WHISPER_MODEL: this.whisperModel, PYTHONIOENCODING: "utf-8" },
     });
     this.child = child;
     let buf = "";

@@ -1,10 +1,10 @@
-# Talky
+# Penny
 
-Real-time graphics for AI on Windows. Press a key and ask out loud about whatever is on your screen. Talky answers
+Real-time graphics for AI on Windows. Press a key and ask out loud about whatever is on your screen. Penny answers
 with a few spoken sentences while it draws on top of your screen: loops and labels on the real content, paper
 explainer cards, sticky notes, and interactive 3D scenes you can drag around. There is no chat window.
 
-The model is not an API key. Talky drives the **Command Code CLI** (through its ACP mode) or the **Antigravity CLI**
+The model is not an API key. Penny drives the **Command Code CLI** (through its ACP mode) or the **Antigravity CLI**
 (`agy`), whichever you are signed in to. See [PLAN.md](PLAN.md) for the design and how it maps to the demo it is based on.
 
 ## Requirements
@@ -26,20 +26,21 @@ npm install
 npm start
 ```
 
-Talky lives in the system tray. The first start takes 10–15 s while the model process and Whisper load.
+Penny lives in the system tray. The first start takes 10–15 s while the model process and Whisper load.
 
 | Key | What it does |
 | --- | --- |
-| `Ctrl+Alt+Space` | Talk. **Hold** it while you speak and let go to send (push-to-talk), or **tap** it, speak, and Talky stops when you pause. |
+| `Ctrl+Alt+Space` | Talk. **Hold** it while you speak and let go to send (push-to-talk), or **tap** it, speak, and Penny stops when you pause. |
 | `Ctrl+Alt+T` | Type a question instead |
-| `Esc` | Clear the screen and start a new topic (only taken while Talky has something on screen) |
+| `Esc` | Clear the screen and start a new topic (only taken while Penny has something on screen) |
 
-If another app already owns a shortcut, Talky uses the next free one: `Ctrl+Shift+Space`, `Alt+Shift+Space`, then
+If another app already owns a shortcut, Penny uses the next free one: `Ctrl+Shift+Space`, `Alt+Shift+Space`, then
 `Ctrl+Alt+K` for talking, and `Ctrl+Shift+Y` for typing. The tray tooltip and the log show which keys you got.
 
-**Point while you ask.** Put the mouse on the thing you mean and say "what is this?" or "explain this". Talky notes
-where the pointer rested while you talked, and if your question says this, that, here or there, it marks that spot on
-the screenshot and sends the model a 2× close-up of it. Loops and arrows drawn near the pointer snap exactly onto it.
+**Point while you ask.** While Penny listens, a yellow ink trail follows your mouse and a small sound-level badge rides
+next to the cursor. Circle the thing you mean, or rest the pointer on it, and say "what is this?" or "explain this".
+Penny draws your gesture onto the screenshot and sends the model a 2× close-up. A circle means "what's inside", and a
+resting pointer means "this, right here". Loops and arrows drawn near the spot snap exactly onto it.
 
 Questions asked while the drawings are still on screen, or within 5 minutes, are follow-ups in the same
 conversation ("how do I attach a camera to it?").
@@ -50,8 +51,8 @@ The tray menu has:
 - Thinking: Off is the default and the fastest
 - Voice: Natural (edge-tts), Windows voice, or Silent
 - Show captions
-- Listen for "Hey Talky": no key needed; it checks short utterances while idle
-- Hide Talky from screen recordings
+- Listen for "Hey Penny": no key needed; it checks short utterances while idle
+- Hide Penny from screen recordings
 - Open log
 
 ## Models
@@ -63,11 +64,25 @@ The model has to be able to read a screenshot. Measured on this laptop, with Thi
 | `cmd:deepseek/deepseek-v4.1-flash` (default) | ~3.4 s | 4–9 s |
 | `agy:gemini-3.8-flash-low` | ~8 s | ~10 s |
 
-Command Code only offers some models on some plans. If a model is not on yours, Talky says so; pick another in the tray.
+Command Code only offers some models on some plans. If a model is not on yours, Penny says so; pick another in the tray.
+
+## Your accounts and your data
+
+- **Bring your own login.** Penny ships with no keys or accounts. Each user signs in to the model CLI they use
+  (`command-code login`, or `agy`), and that login stays in the CLI's own settings on their machine. Penny never sees
+  a password and never writes a key anywhere.
+- **Nothing personal goes in this repo.** Settings, the log and debug captures live in `%APPDATA%\Penny`, outside the
+  project folder, and `.gitignore` also blocks `.env` files, keys, credential files and screenshots. Before pushing,
+  run `npm run check-secrets`, which scans every file and every past commit for anything that looks like a credential.
+- **What leaves your machine.**
+  - When you ask, the screenshot and your question go to the model you picked, through its CLI.
+  - Spoken answers go to Microsoft's edge-tts service to be turned into speech (switch the tray to Windows voice to
+    keep them local).
+  - Speech recognition (Whisper) runs entirely on your computer.
 
 ## How it works
 
-1. **Hotkey.** The screen is captured (Talky's own drawings hidden for that moment) and the microphone opens.
+1. **Hotkey.** The screen is captured (Penny's own drawings hidden for that moment) and the microphone opens.
 2. **Speech to text.** A Python worker keeps Whisper `base` loaded and transcribes the clip (~2.5 s for 7 s of speech).
 3. **Model.** The question and the screenshot go to a CLI process that is already running:
    - Command Code (`cmd acp`, JSON-RPC over stdio) gets the image inline. Its sessions run in plan mode in an empty
@@ -95,7 +110,7 @@ Command Code only offers some models on some plans. If a model is not on yours, 
   - `GET /snap`: PNG of the screen, drawings included
   - `GET /state`
 
-  Each question's screenshot and raw reply are also saved to `%APPDATA%\talky\debug`.
+  Each question's screenshot and raw reply are also saved to `%APPDATA%\Penny\debug`.
 - `node tools/serve.mjs` serves the overlay to a browser without Electron, with demo buttons for the saved replies
   in `tools/demo`. Open `http://127.0.0.1:5199/src/renderer/overlay.html?mute=1&bg=<screenshot url>`.
 - `node tools/probe-models.mjs <model id> <screenshot.jpg> "<question>" [out.jsonl]` asks a model directly and saves
@@ -106,7 +121,7 @@ src/main/        main process: main.js (windows, hotkeys, tray, ask loop), captu
 src/main/providers/  acp.js (Command Code), agy.js (Antigravity), cli.js (finding/stopping the CLIs)
 src/main/prompt.js   the scene language the model writes
 src/renderer/    overlay page: engine/ (parser, stage, card, marks, scene3d, sketch, icons), voice.js
-voice/talky_voice.py Whisper + edge-tts worker
+voice/penny_voice.py Whisper + edge-tts worker
 tools/           preview server, model probe, demo replies
 ```
 
@@ -115,8 +130,8 @@ tools/           preview server, model probe, demo replies
 - **"Command Code stopped" or a sign-in message**: run `command-code logout`, then `command-code login`.
   `login` alone can keep an expired key.
 - **No voice, or a robotic voice**: edge-tts needs internet and a current version (`py -m pip install -U edge-tts`).
-  After three failures Talky switches to the Windows voice.
+  After three failures Penny switches to the Windows voice.
 - **"Microphone unavailable"**: check Windows Settings → Privacy → Microphone → "Let desktop apps access your microphone".
 - **Everything is slow**: Whisper and the model process need about 1 GB between them. Close heavy apps, or set
-  `"whisperModel": "tiny"` in `%APPDATA%\talky\settings.json`.
-- The log is at `%APPDATA%\talky\talky.log` (tray → Open log).
+  `"whisperModel": "tiny"` in `%APPDATA%\Penny\settings.json`.
+- The log is at `%APPDATA%\Penny\penny.log` (tray → Open log).
