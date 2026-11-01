@@ -14,7 +14,8 @@ the design and how it maps to the demo it is based on.
   warn: choose **More info → Run anyway**.
 - **Penny for Chrome:** [penny-chrome.zip](https://github.com/AshrafulKabir7/penny/releases/latest/download/penny-chrome.zip), see
   [Penny for Chrome](#penny-for-chrome).
-- **Website:** the landing page lives in [website/](website/) (static, no build step).
+- **Website:** [penny-website-sepia.vercel.app](https://penny-website-sepia.vercel.app), from [website/](website/) (static, no build
+  step; Vercel redeploys it on every push to main).
 
 ## Requirements
 
