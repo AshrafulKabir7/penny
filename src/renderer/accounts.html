@@ -278,7 +278,8 @@
         $("[data-login]", section("codex")).disabled = s.codex === "missing";
         $("[data-openai-model]").value ||= s.openaiModel;
         $("[data-gemini-model]").value ||= s.geminiModel;
-        $("[data-claude-signin]").textContent = { "signed-in": "Signed in to the Claude API", "signed-out": "", "no-cli": "Needs Anthropic's CLI (ant)" }[s.claude] || "";
+        $("[data-claude-signin]").textContent = { "signed-in": "Signed in to the Claude API", "signed-out": "", "no-cli": "First downloads Anthropic's official CLI (ant, about 13 MB) from GitHub" }[s.claude] || "";
+        $("[data-claude-login]").textContent = s.claude === "no-cli" ? "Install ant and sign in with Claude" : "Sign in with Claude";
         const g = $("[data-chip]", section("google-account"));
         g.textContent = { "signed-in": "Signed in", "signed-out": "Not signed in", missing: "Antigravity not installed", checking: "Checking…" }[s.google] || s.google;
         g.className = `chip ${s.google === "signed-in" ? "ok" : ""}`;
@@ -324,7 +325,7 @@
       };
 
       $("[data-claude-login]").onclick = async () => {
-        say("anthropic", "Finish signing in in your browser…");
+        say("anthropic", "Installing Anthropic's CLI if needed, then finish signing in in the window that opens…");
         const res = await window.accounts.claudeLogin();
         if (res.install) {
           say("anthropic", res.error, "bad");

@@ -704,7 +704,7 @@ function wireAccountsIpc() {
   });
   ipcMain.handle("accounts:claude-login", async () => {
     try {
-      await claudeSignIn();
+      await claudeSignIn({ log }); // installs Anthropic's CLI first if it is missing
       if (parseModelId(cfg.model)?.kind === "claude") startProvider();
       buildTray();
       return { state: await accountsState() };

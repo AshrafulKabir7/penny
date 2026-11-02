@@ -67,7 +67,7 @@ async function handle(msg) {
     return send({ id, chatgpt, claude: claudeSignInStatus(), google });
   }
   if (type === "login") {
-    const login = { chatgpt: codexLogin, claude: claudeSignIn, google: googleSignIn }[msg.account];
+    const login = { chatgpt: codexLogin, claude: () => claudeSignIn({ log }), google: googleSignIn }[msg.account];
     if (!login) return send({ id, error: "Unknown account." });
     try {
       await login();

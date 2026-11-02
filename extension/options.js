@@ -31,7 +31,7 @@ function render() {
 // ---------------------------------------------------------------- accounts (through the Penny app)
 
 let accounts = null; // the app's answer: { installed, chatgpt, claude, google }
-const STATE = { "signed-in": "signed in", "signed-out": "not signed in", missing: "not installed", "no-cli": "ant CLI not installed" };
+const STATE = { "signed-in": "signed in", "signed-out": "not signed in", missing: "not installed", "no-cli": "Anthropic's CLI will be installed" };
 
 function renderAccounts() {
   $("#no-app").hidden = !accounts || accounts.installed;
@@ -41,6 +41,10 @@ function renderAccounts() {
     el.textContent = STATE[state] || (state === "checking" ? "checking…" : "needs the Penny app");
     el.classList.toggle("saved", state === "signed-in");
     $(".signin", box).hidden = state === "signed-in";
+    if (box.dataset.account === "claude") {
+      $(".signin", box).textContent = state === "no-cli" ? "Install ant and sign in with Claude" : "Sign in with Claude";
+      $(".install-note", box).hidden = state !== "no-cli";
+    }
     $(".signin", box).disabled = !accounts?.installed;
     const use = $(".use", box);
     use.hidden = state !== "signed-in";
@@ -63,7 +67,7 @@ for (const box of $$(".account")) {
     result.className = `result ${ok == null ? "" : ok ? "ok" : "bad"}`;
   };
   $(".signin", box).addEventListener("click", async () => {
-    say("Finish signing in in the window that opened…", null);
+    say(box.dataset.account === "claude" ? "Installing Anthropic's CLI if needed, then finish signing in in the window that opens…" : "Finish signing in in the window that opened…", null);
     const res = await chrome.runtime.sendMessage({ type: "login", account: box.dataset.account });
     if (res?.error) {
       const link = /^https:\/\//.test(res.install || "") ? ` <a href="${res.install}" target="_blank" rel="noreferrer">Get it here</a>.` : "";
