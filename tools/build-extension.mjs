@@ -17,6 +17,29 @@ const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
+// Spark (the splat renderer) starts its worker from a blob: URL, which extension pages may not run. The worker's
+// source is written out as spark-worker.js, and Spark is pointed at it (bridge.js sets __pennySparkWorker).
+const SPARK = join(ROOT, "node_modules", "@sparkjsdev", "spark", "dist", "spark.module.js");
+const BLOB_URL = "objURL = blob && (self.URL || self.webkitURL).createObjectURL(blob);";
+const sparkWorkerFile = {
+  name: "spark-worker-file",
+  setup(b) {
+    b.onLoad({ filter: /spark\.module\.js$/ }, async ({ path }) => {
+      const code = readFileSync(path, "utf8");
+      if (!code.includes(BLOB_URL)) throw new Error("Spark's worker loader changed; update tools/build-extension.mjs");
+      return { contents: code.replace(BLOB_URL, "objURL = globalThis.__pennySparkWorker || (blob && (self.URL || self.webkitURL).createObjectURL(blob));"), loader: "js" };
+    });
+  },
+};
+function sparkWorkerSource() {
+  const code = readFileSync(SPARK, "utf8");
+  const start = code.indexOf("var jsContent = ");
+  const end = code.indexOf("\nvar blob = typeof self", start);
+  if (start < 0 || end < 0) throw new Error("Spark's worker source moved; update tools/build-extension.mjs");
+  // The source is one JS string literal in Spark's own bundle; evaluate just that literal.
+  return new Function(`return ${code.slice(start + "var jsContent = ".length, end).trim().replace(/;$/, "")}`)();
+}
+
 const common = {
   bundle: true,
   platform: "browser",
@@ -27,7 +50,8 @@ const common = {
   define: { "process.env.NODE_ENV": '"production"' },
 };
 await build({ ...common, entryPoints: [join(SRC, "background.js")], outfile: join(OUT, "background.js"), format: "esm" });
-await build({ ...common, entryPoints: [join(SRC, "overlay-entry.js")], outfile: join(OUT, "overlay.js"), format: "iife" });
+await build({ ...common, entryPoints: [join(SRC, "overlay-entry.js")], outfile: join(OUT, "overlay.js"), format: "iife", plugins: [sparkWorkerFile] });
+writeFileSync(join(OUT, "spark-worker.js"), sparkWorkerSource());
 await build({ ...common, entryPoints: [join(SRC, "options.js")], outfile: join(OUT, "options.js"), format: "iife" });
 
 // The manifest carries the app's version.

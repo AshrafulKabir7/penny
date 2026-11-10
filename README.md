@@ -68,6 +68,23 @@ The extension reuses the app's drawing engine (`src/renderer`), prompt and API p
 [extension/](extension/). Its ID is fixed by the public `key` in its manifest (`mnpcmhoideneafghojodngbcomangdbg`), which
 the app's host allows; if you installed an earlier build, remove it and load the new one. Build it with `npm run build:extension` (writes `dist/penny-chrome/` and `dist/penny-chrome.zip`).
 
+## 3D from pictures (Idol)
+
+Ask to see something pictured on your screen in 3D ("show me this backpack from the back"), and Penny sculpts a real 3D
+copy of it with [Idol](https://huggingface.co/speridlabs/idol) by speridlabs (Apache-2.0): one picture of an object in,
+a 3D Gaussian splat out, including the sides the picture never showed. The model writes a `replica` op with a box around
+the object; Penny crops that part of the screenshot, has Idol sculpt it, and drops the result into its 3D panel, drawn
+with [Spark](https://sparkjs.dev). A placeholder holds its place meanwhile, so tags, spins and moves work straight away.
+
+- Idol needs an NVIDIA GPU with about 7 GB of memory, so Penny runs it on Hugging Face: the public
+  [Idol Space](https://huggingface.co/spaces/speridlabs/idol) by default, on free shared GPUs with a daily quota. Without a
+  token that is a try or two a day; add a free Hugging Face token (Read access) in Accounts, or in Penny for Chrome's
+  settings, for your own quota. A copy of the Space on your own GPU works too: give its name or address as the Idol Space.
+- The cropped picture goes to Hugging Face. Results are kept by picture (`%APPDATA%\Penny\idol` in the app), so asking
+  again about the same thing spends no GPU time. A sculpt takes about 10-40 s; if it fails, the panel says why.
+- Code: [src/main/idol.js](src/main/idol.js) (the Space call, shared with the extension), [src/main/sculpt.js](src/main/sculpt.js)
+  (crop and cache), `replica` in [src/renderer/engine/scene3d.js](src/renderer/engine/scene3d.js).
+
 ## Run
 
 ```bash

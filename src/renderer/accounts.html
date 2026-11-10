@@ -243,6 +243,26 @@
         <div class="msg" data-msg></div>
       </section>
 
+      <section data-provider="huggingface">
+        <h2>3D from pictures <span class="chip" data-chip>Not added</span></h2>
+        <p class="sub">Ask to see something pictured on your screen in 3D, and Penny sculpts a real 3D copy of it with Idol on Hugging Face's GPUs. Without a token it works a time or two a day; a free Hugging Face token gives you your own daily quota.</p>
+        <div class="row">
+          <input type="password" autocomplete="off" spellcheck="false" placeholder="Hugging Face token: hf_…" data-key />
+          <button class="primary" data-save>Save</button>
+        </div>
+        <div class="row">
+          <button data-test>Test</button>
+          <button data-remove>Remove</button>
+          <a data-link="https://huggingface.co/settings/tokens">Get a token</a>
+        </div>
+        <div class="row">
+          <span class="label">Idol Space</span>
+          <input data-idol-space spellcheck="false" placeholder="speridlabs/idol" style="flex: 1 1 180px" />
+          <button data-idol-save>Save</button>
+        </div>
+        <div class="msg" data-msg></div>
+      </section>
+
       <section>
         <h2>Command Code and Antigravity</h2>
         <p class="sub">Sign in with their own apps (<code>command-code login</code>, or run <code>agy</code> once), then pick a model from the tray menu.</p>
@@ -263,7 +283,7 @@
 
       function render(s) {
         state = s;
-        for (const p of ["anthropic", "openai", "google"]) {
+        for (const p of ["anthropic", "openai", "google", "huggingface"]) {
           const chip = $("[data-chip]", section(p));
           const signedIn = p === "anthropic" && !s.keys[p] && s.claude === "signed-in";
           chip.textContent = s.keys[p] ? `Key saved · ${s.keys[p]}` : signedIn ? "Signed in" : "Not added";
@@ -278,6 +298,7 @@
         $("[data-login]", section("codex")).disabled = s.codex === "missing";
         $("[data-openai-model]").value ||= s.openaiModel;
         $("[data-gemini-model]").value ||= s.geminiModel;
+        if (document.activeElement !== $("[data-idol-space]")) $("[data-idol-space]").value = s.idolSpace || "";
         $("[data-claude-signin]").textContent = { "signed-in": "Signed in to the Claude API", "signed-out": "", "no-cli": "First downloads Anthropic's official CLI (ant, about 13 MB) from GitHub" }[s.claude] || "";
         $("[data-claude-login]").textContent = s.claude === "no-cli" ? "Install ant and sign in with Claude" : "Sign in with Claude";
         const g = $("[data-chip]", section("google-account"));
@@ -294,7 +315,14 @@
         render(await window.accounts.state());
       }
 
-      for (const p of ["anthropic", "openai", "google"]) {
+      $("[data-idol-save]").onclick = async () => {
+        const res = await window.accounts.setIdolSpace($("[data-idol-space]").value);
+        if (res.error) return say("huggingface", res.error, "bad");
+        render(res.state);
+        say("huggingface", res.state.idolSpace ? `Penny will use ${res.state.idolSpace}.` : "Penny will use the public Idol Space.", "ok");
+      };
+
+      for (const p of ["anthropic", "openai", "google", "huggingface"]) {
         const root = section(p);
         $("[data-save]", root).onclick = async () => {
           const input = $("[data-key]", root);

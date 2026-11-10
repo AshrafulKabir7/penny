@@ -67,6 +67,7 @@ const stage = new Stage(document.getElementById("stage"), {
   onInteractive: (on) => api.setInteractive(on),
   onVisuals: (on) => api.visuals(on),
   onCaption: showCaption,
+  onSculpt: api.sculpt ? (req) => api.sculpt(req) : null,
 });
 
 window.__penny = { stage }; // for poking at the stage from DevTools
@@ -253,6 +254,13 @@ function demoApi() {
   });
   return {
     synth: null,
+    // Demos load a saved splat instead of sculpting (?ply=<url>, default .cache/idol/backpack.ply).
+    async sculpt() {
+      await new Promise((r) => setTimeout(r, Number(params.get("sculptMs") || 1500)));
+      const res = await fetch(params.get("ply") || "../../.cache/idol/backpack.ply");
+      if (!res.ok) throw new Error("No saved splat for the demo.");
+      return new Uint8Array(await res.arrayBuffer());
+    },
     on: (name, fn) => (handlers[name] = fn),
     setInteractive() {},
     visuals() {},

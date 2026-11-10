@@ -6,7 +6,7 @@ const { app, safeStorage } = require("electron");
 const { mkdirSync, readFileSync, writeFileSync } = require("node:fs");
 const { join } = require("node:path");
 
-const PROVIDERS = new Set(["anthropic", "openai", "google"]);
+const PROVIDERS = new Set(["anthropic", "openai", "google", "huggingface"]); // huggingface: Idol (3D from pictures)
 
 function file() {
   return join(app.getPath("userData"), "credentials.json");

@@ -353,6 +353,29 @@
       </section>
 
       <section>
+        <h2>3D from pictures</h2>
+        <p class="hint">
+          Ask to see something pictured on a page in 3D, and Penny sculpts a real 3D copy of it with Idol on Hugging Face's GPUs. It works without a token a time or two a day; a free
+          Hugging Face token gives you your own daily quota. The picture you point at goes to Hugging Face for this.
+        </p>
+        <div class="key" data-key="huggingface" data-provider="huggingface">
+          <h3>Hugging Face token <span class="state"></span></h3>
+          <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer">Get a free token (Read access is enough)</a>
+          <div class="row">
+            <input type="password" autocomplete="off" spellcheck="false" placeholder="hf_…" />
+            <button class="save">Save</button>
+            <button class="ghost test">Test</button>
+            <button class="ghost remove">Remove</button>
+          </div>
+          <div class="result"></div>
+        </div>
+        <div class="row">
+          <span>Idol Space</span>
+          <input type="text" id="idol-space" spellcheck="false" placeholder="speridlabs/idol" />
+        </div>
+      </section>
+
+      <section>
         <h2>Answers</h2>
         <label class="check"><input type="checkbox" id="speak" /> Speak answers out loud</label>
         <label class="check"><input type="checkbox" id="captions" /> Show captions of what Penny says</label>

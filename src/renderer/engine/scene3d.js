@@ -1,4 +1,5 @@
-// Interactive 3D scenes built from the model's primitives, floating over the screen with no background.
+// Interactive 3D scenes built from the model's primitives, floating over the screen with no background. A "replica"
+// part is a real 3D copy of something pictured on screen, sculpted by Idol and drawn as Gaussian splats with Spark.
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -232,6 +233,8 @@ export class Scene3D {
     this.tags = [];
     this.flows = [];
     this.spinners = [];
+    this.ghosts = []; // placeholders of objects still being sculpted
+    this.splats = [];
     this.tweens = [];
     this.goal = null;
     this.userMoved = false;
@@ -271,6 +274,106 @@ export class Scene3D {
     this.tweens.push({ t: 0, dur: 0.32, pop: true, step: (k) => group.scale.setScalar(Math.max(0.001, easeOutBack(k))) });
     this.needsFrame = true; // refit the camera as the part grows to full size
     return sleep(70);
+  }
+
+  /**
+   * A real 3D copy of an object pictured on the screen. Idol sculpts it from that part of the screenshot as a Gaussian
+   * splat, which takes 10-40 s. A placeholder holds its place at once, so tags, spins and moves can target it straight
+   * away, and the splat takes its place when it arrives. If sculpting fails, the placeholder's tag says why.
+   */
+  replica(op) {
+    const id = String(op.id || `replica${this.parts.size}`);
+    this.parts.get(id)?.group.removeFromParent();
+    const s = size(op.size, 2);
+    const group = new THREE.Group();
+    const inner = new THREE.Group();
+    group.add(inner);
+    // An invisible box the object's size: framing and tags measure it, since a splat has no ordinary geometry to measure.
+    const proxy = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), new THREE.MeshBasicMaterial({ visible: false }));
+    proxy.position.y = s / 2;
+    const ghost = new THREE.Mesh(new THREE.IcosahedronGeometry(s * 0.45, 1), new THREE.MeshBasicMaterial({ color: 0xf5b700, wireframe: true, transparent: true, opacity: 0.6 }));
+    ghost.position.y = s / 2;
+    inner.add(proxy, ghost);
+    const [px, py, pz] = vec3(op.pos);
+    const [rx, ry, rz] = vec3(op.rot);
+    group.position.set(px, py, pz);
+    group.rotation.set(rx * DEG, ry * DEG, rz * DEG);
+    this.root.add(group);
+    const part = { group, inner, op };
+    this.parts.set(id, part);
+    this.ghosts.push(ghost);
+    this.needsFrame = true;
+    const status = this._statusTag(part, "Sculpting it in 3D…");
+    const sculpting = this.stage.sculpt ? this.stage.sculpt(op) : Promise.reject(new Error("3D from pictures isn't available here."));
+    sculpting
+      .then((bytes) => this._placeSplat(part, bytes, s, proxy, ghost))
+      .then(() => this._dropTag(status))
+      .catch((err) => {
+        status.el.textContent = String(err?.message || err).slice(0, 110);
+        ghost.material.color.set(0x9aa0a6);
+        setTimeout(() => this._dropTag(status), 9000);
+      });
+    return sleep(70);
+  }
+
+  /** Swaps the placeholder for the sculpted splat: upright, its largest side `s`, standing on the part's origin. */
+  async _placeSplat(part, bytes, s, proxy, ghost) {
+    if (!part.group.parent) return; // the scene moved on before the object arrived
+    const { SparkRenderer, SplatMesh } = await import("@sparkjsdev/spark");
+    if (!this.spark) {
+      this.spark = new SparkRenderer({ renderer: this.renderer });
+      this.scene.add(this.spark);
+    }
+    const splat = new SplatMesh({ fileBytes: bytes, fileType: "ply" });
+    await splat.initialized;
+    splat.quaternion.set(1, 0, 0, 0); // Idol writes y-down, like most splat files
+    splat.updateMatrix();
+    const box = splat.getBoundingBox(true).applyMatrix4(splat.matrix);
+    const dims = box.getSize(new THREE.Vector3());
+    const scale = s / Math.max(dims.x, dims.y, dims.z, 1e-6);
+    const holder = new THREE.Group();
+    holder.add(splat);
+    holder.scale.setScalar(scale);
+    const centre = box.getCenter(new THREE.Vector3());
+    holder.position.set(-centre.x * scale, -box.min.y * scale, -centre.z * scale);
+    // Framing and tags use the proxy, resized to the real object; the splat's own geometry is a stand-in quad.
+    if (splat.geometry) splat.geometry.boundingBox = new THREE.Box3();
+    proxy.scale.set(dims.x * scale / s, dims.y * scale / s, dims.z * scale / s);
+    proxy.position.y = (dims.y * scale) / 2;
+    this.ghosts = this.ghosts.filter((g) => g !== ghost);
+    part.inner.remove(ghost);
+    ghost.geometry.dispose();
+    ghost.material.dispose();
+    part.inner.add(holder);
+    this.splats.push(splat);
+    holder.scale.setScalar(scale * 0.001);
+    this.tweens.push({ t: 0, dur: 0.6, pop: true, step: (k) => holder.scale.setScalar(scale * Math.max(0.001, easeOutBack(k))) });
+    this.needsFrame = true;
+  }
+
+  /** A tag that reports progress on a part, outside the model's own tags; `_dropTag` removes it. */
+  _statusTag(target, text) {
+    const c = paletteColor("yellow");
+    const el = document.createElement("div");
+    el.className = "tag status";
+    el.textContent = text;
+    Object.assign(el.style, { background: c.fill, borderColor: c.stroke, color: c.ink });
+    this.tagLayer.appendChild(el);
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dot.setAttribute("r", "3.2");
+    this.lines.append(line, dot);
+    const tag = { el, line, dot, target, at: null, x: null, y: null, w: 0, h: 0 };
+    this.tags.push(tag);
+    requestAnimationFrame(() => el.classList.add("in"));
+    return tag;
+  }
+
+  _dropTag(tag) {
+    this.tags = this.tags.filter((t) => t !== tag);
+    tag.el.remove();
+    tag.line.remove();
+    tag.dot.remove();
   }
 
   /** The scene's bounds for framing: everything except floors, which should run out past the edges of the view. */
@@ -497,6 +600,10 @@ export class Scene3D {
       s.obj.rotateOnAxis(s.world.clone().applyQuaternion(q).normalize(), s.speed * dt * 2.2);
     }
     const secs = now / 1000;
+    for (const g of this.ghosts) {
+      g.rotation.y += dt * 1.6;
+      g.material.opacity = 0.35 + 0.3 * Math.sin(secs * 3.2);
+    }
     const up = new THREE.Vector3(0, 1, 0);
     for (const f of this.flows) {
       f.arrows.forEach((a, i) => {
@@ -608,6 +715,8 @@ export class Scene3D {
           m.dispose();
         });
       });
+      for (const s of this.splats) s.dispose?.();
+      this.spark?.dispose?.();
       this.envTex.dispose();
       this.controls.dispose();
       this.renderer.dispose();

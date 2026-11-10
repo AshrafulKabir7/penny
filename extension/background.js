@@ -10,6 +10,7 @@ import { OpenAiApiProvider, testOpenAiKey } from "../src/main/providers/openai.j
 import { GeminiApiProvider, testGeminiKey } from "../src/main/providers/gemini.js";
 import { POINTING, gestureOnShot } from "../src/main/gesture.js";
 import { answerSpace, inSpace } from "../src/main/prompt.js";
+import { sculpt as idolSculpt } from "../src/main/idol.js";
 import { ACCOUNTS, KEY_FOR, loadSettings as settings } from "./models.js";
 
 const MAX_WIDTH = 1600; // screenshot width sent to the model
@@ -94,6 +95,12 @@ chrome.runtime.onConnect.addListener((port) => {
     } else if (type === "visuals") t.visuals = !!data;
     else if (type === "capture-ready") t.waits.get(data)?.();
     else if (type === "open-options") chrome.runtime.openOptionsPage();
+    else if (type === "sculpt") {
+      sculptFromTab(t, data).then(
+        (bytes) => send(t, "sculpt-result", { reqId: data.reqId, bytes: toBase64(bytes) }),
+        (err) => send(t, "sculpt-result", { reqId: data.reqId, error: String(err?.message || err) }),
+      );
+    }
   });
 });
 
@@ -184,6 +191,9 @@ async function capture(t, tab) {
   const canvas = new OffscreenCanvas(Math.round(bitmap.width * scale), Math.round(bitmap.height * scale));
   canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
+  // An unmarked copy: the pointer ring is drawn on `canvas` later, and Idol should see the page as it is.
+  t.clean = new OffscreenCanvas(canvas.width, canvas.height);
+  t.clean.getContext("2d").drawImage(canvas, 0, 0);
   let host = "";
   try {
     host = new URL(tab.url).host;
@@ -347,6 +357,48 @@ class AppProvider {
   }
 }
 
+// ---------------------------------------------------------------- 3D from pictures (Idol)
+
+const sculpted = new Map(); // picture hash -> .ply bytes, the last few, so asking again spends no GPU time
+
+/** A real 3D copy of the object in part of the tab's last screenshot (box in fractions of the view), as .ply bytes. */
+async function sculptFromTab(t, { box, photo }) {
+  if (!t.clean) throw new Error("No screenshot to sculpt from yet.");
+  const W = t.clean.width;
+  const H = t.clean.height;
+  const [bx0, by0, bx1, by1] = (box || []).map(Number);
+  const mx = (bx1 - bx0) * 0.06; // a little room around the object; Idol cuts the background out itself
+  const my = (by1 - by0) * 0.06;
+  const x = Math.max(0, Math.floor((bx0 - mx) * W));
+  const y = Math.max(0, Math.floor((by0 - my) * H));
+  const w = Math.min(W - x, Math.ceil((bx1 - bx0 + 2 * mx) * W));
+  const h = Math.min(H - y, Math.ceil((by1 - by0 + 2 * my) * H));
+  if (!(w >= 24 && h >= 24)) throw new Error("That part of the page is too small to sculpt.");
+  const crop = new OffscreenCanvas(w, h);
+  crop.getContext("2d").drawImage(t.clean, x, y, w, h, 0, 0, w, h);
+  const png = await crop.convertToBlob({ type: "image/png" });
+  const digest = await crypto.subtle.digest("SHA-256", await png.arrayBuffer());
+  const key = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("") + (photo ? ":photo" : ":render");
+  if (sculpted.has(key)) return sculpted.get(key);
+  const s = await settings();
+  // A sculpt can outlast the 30 s a quiet extension worker is allowed; any extension call resets that clock.
+  const keepAlive = setInterval(() => chrome.runtime.getPlatformInfo(), 20_000);
+  try {
+    const bytes = await idolSculpt({ image: png, photo: !!photo, token: s.keys.huggingface, space: s.idolSpace });
+    sculpted.set(key, bytes);
+    if (sculpted.size > 4) sculpted.delete(sculpted.keys().next().value);
+    return bytes;
+  } finally {
+    clearInterval(keepAlive);
+  }
+}
+
+function toBase64(bytes) {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
 // ---------------------------------------------------------------- options page
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
@@ -360,7 +412,13 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return true;
   }
   if (msg?.type !== "test") return;
-  const test = { claude: testClaudeKey, openai: testOpenAiKey, gemini: testGeminiKey }[msg.provider];
+  // A Hugging Face token is only asked whose it is; no GPU time is spent.
+  const whoami = async (key) => {
+    const res = await fetch("https://huggingface.co/api/whoami-v2", { headers: { authorization: `Bearer ${key}` } });
+    if (!res.ok) throw Object.assign(new Error("Hugging Face didn't accept this token."), { status: res.status });
+    return (await res.json()).name;
+  };
+  const test = { claude: testClaudeKey, openai: testOpenAiKey, gemini: testGeminiKey, huggingface: whoami }[msg.provider];
   settings()
     .then((s) => test(msg.key, msg.model, clientOptions(msg.provider, s)))
     .then(

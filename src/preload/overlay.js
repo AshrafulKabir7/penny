@@ -16,4 +16,10 @@ contextBridge.exposeInMainWorld("penny", {
   listenResult: (payload) => ipcRenderer.send("listen:result", payload),
   synth: (text) => ipcRenderer.invoke("tts:synth", String(text)),
   captureReady: (token) => ipcRenderer.send("capture:ready", String(token)),
+  // A 3D copy of the object in part of the last screenshot (Idol); resolves with the .ply bytes.
+  sculpt: async (req) => {
+    const res = await ipcRenderer.invoke("idol:sculpt", req);
+    if (res.error) throw new Error(res.error);
+    return res.bytes;
+  },
 });

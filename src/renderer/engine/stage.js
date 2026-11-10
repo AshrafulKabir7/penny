@@ -13,9 +13,10 @@ const ALIASES = { speak: "say", narrate: "say", voice: "say", ellipse: "circle",
   tag3d: "tag", mesh: "part", object: "part", model: "scene", scene3d: "scene", camera: "focus", pause: "wait", marker: "highlight" };
 
 export class Stage {
-  constructor(root, { speaker, onInteractive = () => {}, onVisuals = () => {}, onCaption = () => {} }) {
+  constructor(root, { speaker, onInteractive = () => {}, onVisuals = () => {}, onCaption = () => {}, onSculpt = null }) {
     this.root = root;
     this.speaker = speaker;
+    this.onSculpt = onSculpt; // ({ box, photo }) => Promise<Uint8Array>, the .ply of a pictured object (Idol)
     this.onInteractive = onInteractive;
     this.onVisuals = onVisuals;
     this.onCaption = onCaption;
@@ -190,6 +191,7 @@ export class Stage {
       case "scene":
         return this._scene(op.id, op);
       case "part":
+      case "replica":
       case "tag":
       case "spin":
       case "move":
@@ -206,6 +208,20 @@ export class Stage {
       default:
         return undefined; // unknown ops are skipped
     }
+  }
+
+  /**
+   * Asks the app to sculpt the object in part of the screen. The box goes as fractions of the screen, the same in the
+   * screenshot the app holds. "from" may be "pointer": what the user points at or circled.
+   */
+  sculpt(op) {
+    if (!this.onSculpt) return Promise.reject(new Error("3D from pictures isn't available here."));
+    const [x0, y0, x1, y1] = this.box(op.from ?? op.box ?? "pointer");
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const box = [x0 / W, y0 / H, x1 / W, y1 / H].map((v) => Math.max(0, Math.min(1, v)));
+    if (box[2] - box[0] < 0.01 || box[3] - box[1] < 0.01) return Promise.reject(new Error("Nothing to sculpt there."));
+    return this.onSculpt({ box, photo: !!op.photo });
   }
 
   _cardFor(id) {

@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld("accounts", {
   claudeLogin: () => ipcRenderer.invoke("accounts:claude-login"),
   googleLogin: () => ipcRenderer.invoke("accounts:google-login"),
   use: (modelId) => ipcRenderer.invoke("accounts:use", String(modelId)),
+  setIdolSpace: (space) => ipcRenderer.invoke("accounts:idol-space", String(space)),
   open: (url) => ipcRenderer.send("accounts:open", String(url)),
   onChanged: (fn) => ipcRenderer.on("accounts:changed", () => fn()),
 });

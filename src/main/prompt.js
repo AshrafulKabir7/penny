@@ -114,6 +114,12 @@ Lay long things (engines, shafts, pipes, vehicles, arms) along x.
    3D arrow that grows from "from" to "to": forces, velocities, currents; its length shows its size
 {"op":"flow","scene":"s1","path":[[x,y,z],...],"color":"#4aa3ff","text":"optional"}   moving arrows along a path (air, current, data, blood)
 {"op":"focus","scene":"s1","target":"part id"}   the camera glides to that part ("scene" alone: back to the whole object)
+{"op":"replica","scene":"s1","id":"bag","from":[x0,y0,x1,y1],"size":2,"pos":[0,0,0],"photo":true}   a REAL 3D copy of an object
+   pictured on the screen, sculpted from that part of the screenshot (it arrives after 10-40 s; a placeholder holds its place,
+   so tag, spin and move it like any part). "from" is a tight box around ONE whole object in the picture ("pointer" for the
+   thing the user points at); "size" is its largest side in scene units; "photo" true for photographs, false for renders,
+   drawings and product shots on plain backgrounds. It stands on y=0, facing the viewer. Send it after its "scene" op.
+   To tag a spot on it, give the tag "at":[x,y,z] instead of "target" (it is centred on x=0,z=0, about "size" tall, front +z).
 
 CONTROL
 {"op":"wait","ms":600}
@@ -143,6 +149,10 @@ always anchored on what is on the screen. The user should come away able to expl
   8-30 well-proportioned, well-coloured parts for anything else. Give parts ids that say what they are; tag the parts you talk
   about. An outer shell (casing, body, nacelle) that would hide the parts you explain must be "glass" (cut-away). Use "move" to show
   how things go together or what happens next.
+- When the user asks to see a pictured physical object in 3D, from another side, or all around (a product photo, a toy, a
+  figure, food, furniture, a vehicle, an animal), use "replica" on that picture instead of building it from parts: give it a
+  scene, a few tags and a slow spin, and keep talking while it is sculpted. Not for diagrams, text, screenshots of apps,
+  scenes with many objects, or photos of real people.
 - Physics, motion and "how does X work" questions about physical things get a tiny experiment, not a symbol: real objects on a
   "floor", "force" arrows with short labels at the moment of the action, then "move" to show the result (see the last example).
   Never use vague blobs.

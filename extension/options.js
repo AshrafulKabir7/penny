@@ -17,6 +17,7 @@ function render() {
   $("#effort").value = s.effort;
   $("#speak").checked = s.speak;
   $("#captions").checked = s.captions;
+  if (document.activeElement !== $("#idol-space")) $("#idol-space").value = s.idolSpace || "";
   for (const box of $$(".key")) {
     const key = s.keys[box.dataset.key];
     const state = $(".state", box);
@@ -94,6 +95,7 @@ $("#model").addEventListener("change", (e) => {
 $("#effort").addEventListener("change", (e) => save({ effort: e.target.value }));
 $("#speak").addEventListener("change", (e) => save({ speak: e.target.checked }));
 $("#captions").addEventListener("change", (e) => save({ captions: e.target.checked }));
+$("#idol-space").addEventListener("change", (e) => save({ idolSpace: e.target.value.trim() }));
 
 for (const box of $$(".key")) {
   const input = $("input", box);
@@ -119,7 +121,8 @@ for (const box of $$(".key")) {
     const provider = box.dataset.provider;
     say("Testing…", null);
     const res = await chrome.runtime.sendMessage({ type: "test", provider, key: s.keys[box.dataset.key], model: s.models[provider] });
-    say(res?.ok ? `Works with ${s.models[provider]}.` : `Didn't work: ${res?.message || "no answer"}`, !!res?.ok);
+    const works = provider === "huggingface" ? `Works: signed in as ${res?.text}.` : `Works with ${s.models[provider]}.`;
+    say(res?.ok ? works : `Didn't work: ${res?.message || "no answer"}`, !!res?.ok);
   });
   input.addEventListener("keydown", (e) => e.key === "Enter" && $(".save", box).click());
 }

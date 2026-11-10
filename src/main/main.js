@@ -15,6 +15,7 @@ const { codexStatus, codexLogin } = require("./providers/codex");
 const { testGeminiKey } = require("./providers/gemini");
 const { claudeSignInStatus, claudeSignIn, googleAccountStatus, googleSignIn } = require("./signin");
 const { registerNativeHost } = require("./native-host");
+const { sculptFromScreenshot } = require("./sculpt");
 const { answerSpace, inSpace } = require("./prompt");
 const { VoiceWorker } = require("./voice");
 const { trayIconPng } = require("./icon");
@@ -38,6 +39,7 @@ let currentAsk = null;
 let answering = false;
 let visualsOnScreen = false;
 let lastAnswerAt = 0;
+let answerShot = null; // the screenshot the current answer was made from, without the pointer marks (for Idol)
 let extraModels = [];
 let wakeLoopOn = false;
 const pointer = new PointerTracker();
@@ -222,6 +224,7 @@ async function ask(question, shotPromise, pointedAt = null, gesture = null) {
     let shot = await shotPromise;
     if (id !== askSeq) return;
     const space = answerSpace(provider.model, shot); // Gemini models answer on a 0-1000 grid
+    answerShot = shot;
     shot = withPointer(shot, pointedAt, question, gesture);
     send("answer:space", space);
     send("answer:pointer", inSpace(shot, space).pointer);
@@ -582,6 +585,17 @@ function buildTray() {
 // ---------------------------------------------------------------- IPC
 
 function wireIpc() {
+  ipcMain.handle("idol:sculpt", async (_e, req) => {
+    try {
+      if (!answerShot) throw new Error("No screenshot to sculpt from yet.");
+      const { box = [], photo = false } = req || {};
+      const bytes = await sculptFromScreenshot({ jpeg: answerShot.jpeg, box, photo: !!photo, token: credentials.getKey("huggingface"), space: cfg.idolSpace, cacheDir: join(app.getPath("userData"), "idol"), log });
+      return { bytes };
+    } catch (err) {
+      log(`[idol] ${err.message}`);
+      return { error: err.message };
+    }
+  });
   ipcMain.on("overlay:ready", () => {
     overlayReady = true;
     // The first capture after launch is several times slower than the rest; get it out of the way now.
@@ -610,7 +624,7 @@ function wireIpc() {
 
 // ---------------------------------------------------------------- Accounts window (keys go in, masked hints come out)
 
-const KEY_LINKS = ["https://console.anthropic.com/", "https://platform.openai.com/", "https://aistudio.google.com/", "https://github.com/anthropics/anthropic-cli/"];
+const KEY_LINKS = ["https://console.anthropic.com/", "https://platform.openai.com/", "https://aistudio.google.com/", "https://github.com/anthropics/anthropic-cli/", "https://huggingface.co/settings/tokens"];
 const KEY_KIND = { anthropic: "claude", openai: "openai", google: "gemini" };
 
 // Asking Antigravity whether it is signed in takes a few seconds, so the answer is cached and refreshed in the background.
@@ -631,7 +645,8 @@ async function accountsState() {
   const all = [...OWN_ACCOUNTS, ...SUGGESTED];
   const named = all.find((m) => m.id === cfg.model);
   return {
-    keys: { anthropic: credentials.hint("anthropic"), openai: credentials.hint("openai"), google: credentials.hint("google") },
+    keys: { anthropic: credentials.hint("anthropic"), openai: credentials.hint("openai"), google: credentials.hint("google"), huggingface: credentials.hint("huggingface") },
+    idolSpace: cfg.idolSpace || "",
     codex: await codexStatus(),
     claude: claudeSignInStatus(),
     google: (refreshGoogleState(), googleState),
@@ -665,7 +680,11 @@ function wireAccountsIpc() {
     const key = credentials.getKey(provider);
     if (!key) return { ok: false, error: "No key saved yet." };
     try {
-      if (provider === "anthropic") {
+      if (provider === "huggingface") {
+        // Only asks whose token it is; no GPU time is spent.
+        const res = await fetch("https://huggingface.co/api/whoami-v2", { headers: { authorization: `Bearer ${key}` } });
+        if (!res.ok) throw Object.assign(new Error("rejected"), { status: res.status === 403 ? 403 : 401 });
+      } else if (provider === "anthropic") {
         const current = parseModelId(cfg.model);
         await testClaudeKey(key, current?.kind === "claude" ? current.model : "claude-opus-5-5");
       } else if (provider === "google") {
@@ -722,6 +741,12 @@ function wireAccountsIpc() {
     } catch (err) {
       return { error: err.message };
     }
+  });
+  ipcMain.handle("accounts:idol-space", async (_e, space) => {
+    const value = String(space).trim();
+    if (value && !/^([\w.-]+\/[\w.-]+|https:\/\/[\w.-]+(\/[\w./-]*)?)$/.test(value)) return { error: "Give a Space as owner/name or its https:// address." };
+    change({ idolSpace: value });
+    return { state: await accountsState() };
   });
   ipcMain.on("accounts:open", (_e, url) => {
     if (KEY_LINKS.some((prefix) => String(url).startsWith(prefix))) shell.openExternal(url);
