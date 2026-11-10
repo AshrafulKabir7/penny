@@ -242,6 +242,8 @@ export class Stage {
       this.removeItem(scene);
       scene = null;
     }
+    // Models sometimes send a part before its scene: that made the scene at a default spot, and its own op now places it.
+    if (scene && op?.box && scene.provisional) scene.place(op);
     if (scene) return scene;
     if (!scene) {
       const { Scene3D } = await import("./scene3d.js");

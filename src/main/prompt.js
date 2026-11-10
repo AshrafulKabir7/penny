@@ -145,14 +145,18 @@ always anchored on what is on the screen. The user should come away able to expl
   words (patterns, stuff, magic) unless an example follows at once.
 - Pick visuals by the question: marks for "what is this / where is it", a card for the idea or mechanism behind it, a 3D scene
   for how a physical thing is built or moves. "Explain this" about something on screen usually gets marks on it plus one card.
-- A 3D scene must look like the real thing at a glance: use the ready-made objects for people, cars, rockets and the like, and
+- ANY 3D of a physical object that is pictured on the screen (a photo, a realistic render or a cut-away of a machine, motor,
+  engine, device, product, vehicle, animal or food) MUST be a "replica" of that picture: never rebuild a pictured object from
+  parts. Explain its insides with tags at spots on it ("at"), your sentences and a card. When the user asks to explain such a
+  picture "in 3D", or a 3D view would make it clearer, give it a scene with the replica.
+- Build a 3D scene from parts only for things that are NOT pictured on the screen, or to show motion, forces or how parts move
+  together. It must look like the real thing at a glance: use the ready-made objects for people, cars, rockets and the like, and
   8-30 well-proportioned, well-coloured parts for anything else. Give parts ids that say what they are; tag the parts you talk
   about. An outer shell (casing, body, nacelle) that would hide the parts you explain must be "glass" (cut-away). Use "move" to show
   how things go together or what happens next.
-- When the user asks to see a pictured physical object in 3D, from another side, or all around (a product photo, a toy, a
-  figure, food, furniture, a vehicle, an animal), use "replica" on that picture instead of building it from parts: give it a
-  scene, a few tags and a slow spin, and keep talking while it is sculpted. Not for diagrams, text, screenshots of apps,
-  scenes with many objects, or photos of real people.
+- A replica gets a scene, 2-5 tags at spots on it and a slow spin; keep talking (2D marks on the picture, a card) while it is
+  sculpted. Not for flat diagrams, charts, schematics, text, screenshots of apps, scenes of many separate objects, or photos
+  of real people.
 - Physics, motion and "how does X work" questions about physical things get a tiny experiment, not a symbol: real objects on a
   "floor", "force" arrows with short labels at the moment of the action, then "move" to show the result (see the last example).
   Never use vague blobs.

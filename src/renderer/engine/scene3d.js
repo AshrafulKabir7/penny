@@ -161,30 +161,9 @@ export class Scene3D {
   constructor(stage, op) {
     this.stage = stage;
     this.id = op.id || "s1";
-    let [x0, y0, x1, y1] = stage.box(op.box, [540, 150, 980, 820]);
-    // A scene should sit beside what the user is looking at, not bury it: cap it around the centre the model chose.
-    const maxW = window.innerWidth * 0.45;
-    const maxH = window.innerHeight * 0.62;
-    if (x1 - x0 > maxW) [x0, x1] = [(x0 + x1) / 2 - maxW / 2, (x0 + x1) / 2 + maxW / 2];
-    if (y1 - y0 > maxH) [y0, y1] = [(y0 + y1) / 2 - maxH / 2, (y0 + y1) / 2 + maxH / 2];
-    const w = Math.max(300, x1 - x0);
-    const h = Math.max(240, y1 - y0);
     this.el = document.createElement("div");
-    // Scenes stand on a paper panel so they read clearly over busy pages; "float":true drops it.
-    this.el.className = op.float ? "scene3d float" : "scene3d";
     this.el.dataset.interactive = "";
-    if (op.title && !op.float) {
-      const title = document.createElement("div");
-      title.className = "scene-title";
-      title.textContent = String(op.title).slice(0, 60);
-      this.el.appendChild(title);
-    }
-    Object.assign(this.el.style, {
-      left: `${Math.max(0, Math.min(x0, window.innerWidth - w))}px`,
-      top: `${Math.max(0, Math.min(y0, window.innerHeight - h))}px`,
-      width: `${w}px`,
-      height: `${h}px`,
-    });
+    const { w, h } = this._layout(op);
     this.canvas = document.createElement("canvas");
     this.lines = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     this.lines.classList.add("scene-lines");
@@ -229,6 +208,7 @@ export class Scene3D {
 
     this.view = ["front", "side", "top", "iso"].includes(op.view) ? op.view : "iso";
     this.spinAll = !!op.spin;
+    this.provisional = !op.box; // made for a part that came before its "scene" op; that op places it later
     this.parts = new Map();
     this.tags = [];
     this.flows = [];
@@ -243,6 +223,47 @@ export class Scene3D {
     this._v = new THREE.Vector3();
     requestAnimationFrame(() => this.el.classList.add("in"));
     stage.scenes.add(this);
+  }
+
+  /** Sizes and places the panel and its title from a "scene" op; returns the size in pixels. */
+  _layout(op) {
+    let [x0, y0, x1, y1] = this.stage.box(op.box, [540, 150, 980, 820]);
+    // A scene should sit beside what the user is looking at, not bury it: cap it around the centre the model chose.
+    const maxW = window.innerWidth * 0.45;
+    const maxH = window.innerHeight * 0.62;
+    if (x1 - x0 > maxW) [x0, x1] = [(x0 + x1) / 2 - maxW / 2, (x0 + x1) / 2 + maxW / 2];
+    if (y1 - y0 > maxH) [y0, y1] = [(y0 + y1) / 2 - maxH / 2, (y0 + y1) / 2 + maxH / 2];
+    const w = Math.max(300, x1 - x0);
+    const h = Math.max(240, y1 - y0);
+    // Scenes stand on a paper panel so they read clearly over busy pages; "float":true drops it.
+    this.el.className = `${op.float ? "scene3d float" : "scene3d"}${this.el.classList.contains("in") ? " in" : ""}`;
+    this.titleEl?.remove();
+    this.titleEl = null;
+    if (op.title && !op.float) {
+      this.titleEl = document.createElement("div");
+      this.titleEl.className = "scene-title";
+      this.titleEl.textContent = String(op.title).slice(0, 60);
+      this.el.prepend(this.titleEl);
+    }
+    Object.assign(this.el.style, {
+      left: `${Math.max(0, Math.min(x0, window.innerWidth - w))}px`,
+      top: `${Math.max(0, Math.min(y0, window.innerHeight - h - 130))}px`, // clear of the captions bar at the bottom
+      width: `${w}px`,
+      height: `${h}px`,
+    });
+    return { w, h };
+  }
+
+  /** The "scene" op of a scene whose parts arrived first: move the panel where the model asked for it. */
+  place(op) {
+    const { w, h } = this._layout(op);
+    this.renderer.setSize(w, h, false);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    if (["front", "side", "top", "iso"].includes(op.view)) this.view = op.view;
+    this.spinAll = !!op.spin;
+    this.provisional = false;
+    this.needsFrame = true;
   }
 
   part(op) {
